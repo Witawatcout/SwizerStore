@@ -7,10 +7,13 @@ export function getPool() {
 
   if (!pool) {
     pool = mysql.createPool({
+      host: config.dbHost,
       user: config.dbUser,
       database: config.dbName,
       port: Number(config.dbPort || 3306),
       password: config.dbPass,
+      waitForConnections: true,
+      connectionLimit: 10,
     });
   }
   return pool;

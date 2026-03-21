@@ -1,31 +1,48 @@
 import { query } from "~~/server/utils/db";
 import bcrypt from "bcryptjs";
 import { signJwt } from "~~/server/utils/jwt";
+import { checkRateLimit, getRateLimitInfo } from "~~/server/utils/rateLimit";
 
 export default defineEventHandler(async (event) => {
+  // Rate limiting — ตรวจจำนวน attempt ต่อ IP
+  const ip = getRequestIP(event, { xForwardedFor: true }) || "unknown";
+  if (!checkRateLimit(ip)) {
+    const info = getRateLimitInfo(ip);
+    const retryAfterSeconds = Math.ceil(info.resetIn / 1000);
+    setResponseHeader(event, "Retry-After", String(retryAfterSeconds));
+    throw createError({
+      statusCode: 429,
+      statusMessage: `Too many login attempts. Please try again in ${retryAfterSeconds} seconds.`,
+    });
+  }
+
   const body = await readBody<{ username: string; password: string }>(event);
 
   if (!body.username || !body.password) {
     throw createError({ statusCode: 400, statusMessage: "Missing username/password" });
   }
 
+  // ดึงเฉพาะ field ที่ต้องใช้ (ไม่ SELECT *)
   const users = await query<any>(
-    "SELECT * FROM users WHERE username = ? LIMIT 1",
+    "SELECT username, password, email, role FROM users WHERE username = ? LIMIT 1",
     [body.username]
   );
 
+  // ใช้ error message เดียวกันทั้ง user not found และ wrong password (ป้องกัน user enumeration)
+  const genericError = "Invalid username or password";
+
   if (users.length === 0) {
-    throw createError({ statusCode: 401, statusMessage: "User not found" });
+    throw createError({ statusCode: 401, statusMessage: genericError });
   }
 
   const user = users[0];
   const match = await bcrypt.compare(body.password, user.password);
 
   if (!match) {
-    throw createError({ statusCode: 401, statusMessage: "Invalid credentials" });
+    throw createError({ statusCode: 401, statusMessage: genericError });
   }
 
-  const token = signJwt({ username: user.username,email: user.email, role: user.role });
+  const token = signJwt({ username: user.username, email: user.email, role: user.role });
 
   // ส่ง token กลับ client
   return {
@@ -33,7 +50,7 @@ export default defineEventHandler(async (event) => {
       username: user.username,
       email: user.email,
       role: user.role,
-      token
-    }
+      token,
+    },
   };
 });

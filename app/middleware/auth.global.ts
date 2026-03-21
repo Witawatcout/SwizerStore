@@ -1,11 +1,12 @@
 import { useAuthStore } from "@/store/auth";
 
-const publicPages = ['/', '/login','/products','/about']
+const publicPages = ['/', '/login', '/products', '/about']
 
 export default defineNuxtRouteMiddleware((to) => {
   const auth = useAuthStore()
 
-  if (publicPages.includes(to.path)) {
+  // case-insensitive path check
+  if (publicPages.includes(to.path.toLowerCase())) {
     return
   }
 
