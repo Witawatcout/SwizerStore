@@ -5,8 +5,12 @@ const publicPages = ['/', '/login', '/products', '/about', '/contact', '/news']
 export default defineNuxtRouteMiddleware((to) => {
   const auth = useAuthStore()
 
-  // case-insensitive path check
-  if (publicPages.includes(to.path.toLowerCase())) {
+  // Check if it's an exact public page or starts with a public prefix (for dynamic routes)
+  const isPublic = publicPages.includes(to.path.toLowerCase()) || 
+                   to.path.toLowerCase().startsWith('/products/') || 
+                   to.path.toLowerCase().startsWith('/news/')
+
+  if (isPublic) {
     return
   }
 
