@@ -26,7 +26,11 @@ export default defineNuxtConfig({
       apiBase: process.env.API_BASE || "http://localhost:3000",
     },
   },
+    ui: {
+    colorMode: false,
+  },
   modules: [
+    "@nuxt/icon",
     "@nuxt/image",
     "@nuxt/ui",
     "@pinia/nuxt",

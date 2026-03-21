@@ -1,12 +1,99 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800;900&display=swap');
 
 body {
-  background-color: white;
+  background-color: #eff5e9;
   color: black;
 }
 
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  line-height: 1;
+}
+
+.editorial-shadow {
+  box-shadow: 0 40px 60px -20px rgba(27, 27, 27, 0.06);
+}
 
 @theme {
-    --color-mred: #CF0F47
+  /* ===== Primary: #8dc63f (Green) ===== */
+  --color-primary-50: #f4fbe8;
+  --color-primary-100: #e6f6cc;
+  --color-primary-200: #cfed9e;
+  --color-primary-300: #b3e16b;
+  --color-primary-400: #9bd44d;
+  --color-primary-500: #8dc63f;
+  --color-primary-600: #6a9e2b;
+  --color-primary-700: #517a24;
+  --color-primary-800: #416122;
+  --color-primary-900: #385220;
+  --color-primary-950: #1c2e0d;
+
+  /* ===== Secondary: #F5EFE1 (Cream) ===== */
+  --color-secondary-50: #fdfcf8;
+  --color-secondary-100: #faf6ed;
+  --color-secondary-200: #f5efe1;
+  --color-secondary-300: #ebe0c7;
+  --color-secondary-400: #dcc9a4;
+  --color-secondary-500: #ccb183;
+  --color-secondary-600: #b8966a;
+  --color-secondary-700: #9a7a54;
+  --color-secondary-800: #7e6448;
+  --color-secondary-900: #67533d;
+  --color-secondary-950: #372b1f;
+
+  /* ===== Tertiary: #eb3007 (Red) ===== */
+  --color-tertiary-50: #fff1ee;
+  --color-tertiary-100: #ffe0d9;
+  --color-tertiary-200: #ffc5b8;
+  --color-tertiary-300: #ff9d8a;
+  --color-tertiary-400: #ff6548;
+  --color-tertiary-500: #eb3007;
+  --color-tertiary-600: #d42505;
+  --color-tertiary-700: #b01c06;
+  --color-tertiary-800: #911b0c;
+  --color-tertiary-900: #781c11;
+  --color-tertiary-950: #410a04;
+
+  /* ===== Neutral: #000000 (Black) ===== */
+  --color-neutral-50: #f6f6f6;
+  --color-neutral-100: #e7e7e7;
+  --color-neutral-200: #d1d1d1;
+  --color-neutral-300: #b0b0b0;
+  --color-neutral-400: #888888;
+  --color-neutral-500: #6d6d6d;
+  --color-neutral-600: #5d5d5d;
+  --color-neutral-700: #4f4f4f;
+  --color-neutral-800: #454545;
+  --color-neutral-900: #3d3d3d;
+  --color-neutral-950: #000000;
+
+  /* ===== Fonts ===== */
+  --font-headline: 'Noto Sans Thai', sans-serif;
+  --font-body: 'Noto Sans Thai', sans-serif;
+  --font-label: 'Noto Sans Thai', sans-serif;
+}
+
+/* Global Animations (Hardware Accelerated) */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 40px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.fade-in-up {
+  opacity: 0;
+  animation-name: fadeInUp;
+  animation-duration: 0.8s;
+  animation-fill-mode: forwards;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }

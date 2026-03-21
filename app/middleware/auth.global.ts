@@ -1,6 +1,6 @@
 import { useAuthStore } from "@/store/auth";
 
-const publicPages = ['/', '/login', '/products', '/about']
+const publicPages = ['/', '/login', '/products', '/about', '/contact', '/news']
 
 export default defineNuxtRouteMiddleware((to) => {
   const auth = useAuthStore()

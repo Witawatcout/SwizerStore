@@ -13,6 +13,7 @@
     "build:prod": "nuxt build --dotenv .env.production"
   },
   "dependencies": {
+    "@nuxt/icon": "^2.2.1",
     "@nuxt/image": "^1.11.0",
     "@nuxt/ui": "^4.0.1",
     "@pinia/nuxt": "^0.11.2",

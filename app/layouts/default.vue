@@ -1,8 +1,13 @@
 <template>
   <div>
-    <Navbar />
-    <main class="p-4">
+    <div class=" shadow-xl shadow-neutral-900/30">
+      <Navbar />
+    </div>
+    <main>
       <slot />
     </main>
+    <div class=" shadow-xl shadow-neutral-900/30">
+      <Footer />
+    </div>
   </div>
 </template>
