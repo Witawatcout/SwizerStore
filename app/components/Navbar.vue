@@ -64,6 +64,11 @@ const userMenuItems = computed(() => [
   <UHeader 
     mode="slideover" 
     class="bg-neutral-950/95 backdrop-blur-md border-b border-white/5 sticky top-0 z-50 transition-all duration-300"
+    :toggle="{ variant: 'ghost', class: 'text-white text-xl' }"
+    :ui="{
+      header: 'bg-neutral-950/95 backdrop-blur-md border-b border-white/5 shadow-xl shadow-neutral-900/30',
+      body: 'bg-white'
+    }"
   >
     <!-- Brand Logo -->
     <template #title>
@@ -77,7 +82,7 @@ const userMenuItems = computed(() => [
       :items="items" 
       class="hidden lg:flex text-white/70 hover:text-white transition-colors"
       :ui="{
-        link: 'font-headline  hover:text-primary-400 transition-colors px-5 py-2 text-sm uppercase',
+        link: 'font-headline hover:text-primary-400 transition-colors px-5 py-2 text-sm uppercase bg-transparent hover:bg-transparent aria-[current=page]:bg-transparent',
       }"
     />
 
@@ -86,15 +91,11 @@ const userMenuItems = computed(() => [
       <div class="flex items-center gap-1.5 md:gap-2">
         
         <!-- Search Icon (Always visible) -->
-        <UTooltip text="ค้นหา">
-          <UButton 
-            variant="ghost" 
-            icon="mynaui:search"
-            size="xl"
-            class="text-white hover:text-primary-400 hover:bg-white/5 rounded-full p-2.5"
-            @click="() => {}"
-          />
-        </UTooltip>
+        <div class="hidden md:block">
+          <UTooltip text="ค้นหา">
+            <Icon name="mynaui:search" class="group-hover:translate-x-1 transition-transform ml-1 text-white text-xl" />
+          </UTooltip>
+        </div>
 
         <!-- Auth State: Authenticated -->
         <UDropdown 
@@ -126,13 +127,21 @@ const userMenuItems = computed(() => [
         <!-- Auth State: Guest (Search & Login Only) -->
         <div v-else class="flex items-center">
           <UTooltip text="เข้าสู่ระบบ">
-            <UButton 
+            <!-- <UButton 
               to="/login" 
               variant="ghost" 
               icon="mynaui:login"
               icon-class="text-xl"
               class="text-white hover:text-primary-400 hover:bg-white/5 rounded-full p-2.5"
+            /> -->
+            <UButton 
+              to="/login" 
+              variant="ghost" 
+              icon="mynaui:login"
+              class="text-white hover:text-primary-400 hover:bg-white/5 rounded-full text-xl"
             />
+          <!-- <Icon name="mynaui:login" class="group-hover:translate-x-1 transition-transform inline-block ml-1 text-white text-xl" /> -->
+
           </UTooltip>
         </div>
       </div>
@@ -140,25 +149,25 @@ const userMenuItems = computed(() => [
 
     <!-- Mobile Slideover Content -->
     <template #body>
-      <div class="flex flex-col h-full py-10 px-6">
+      <div class="flex flex-col h-full fade-in-up">
         <UNavigationMenu 
           :items="items" 
           orientation="vertical" 
-          class="flex-1 space-y-4"
+          class="flex-1 space-y-4 "
           :ui="{
-            link: 'font-headline text-2xl font-black py-4 px-0 hover:text-primary-500 transition-all border-none bg-transparent active:scale-95',
+            link: 'font-headline text-lg font-black py-4 px-0 transition-all border-none active:scale-95 text-neutral-950 hover:text-primary-500 bg-transparent hover:bg-transparent aria-[current=page]:bg-transparent aria-[current=page]:text-primary-600',
           }"
         />
         
         <!-- Mobile Footer Auth -->
-        <div v-if="!auth.token" class="border-t border-white/10 pt-8 flex gap-4">
+        <!-- <div v-if="!auth.token" class="border-t border-white/10 pt-8 flex gap-4">
           <BaseButton to="/login" variant="white" class="flex-1" size="sm">Log In</BaseButton>
           <BaseButton to="/register" variant="primary" class="flex-1" size="sm">Join</BaseButton>
         </div>
         <div v-else class="border-t border-white/10 pt-8">
           <BaseButton variant="dark" class="w-full" size="sm" @click="auth.logout()">Sign Out</BaseButton>
-        </div>
-      </div>
+        </div> -->
+      </div>  
     </template>
   </UHeader>
 </template>
