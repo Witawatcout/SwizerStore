@@ -53,7 +53,7 @@
             </div>
           </div>
 
-          <div class="absolute -bottom-10 lg:-bottom-18 left-8 lg:-left-20 p-6 md:p-8 bg-white/80 backdrop-blur-md rounded-3xl border border-white/50 shadow-[0_20px_40px_rgba(0,0,0,0.08)] z-30 fade-in-up hover:-translate-y-2 transition-transform duration-300 transform-gpu" style="animation-delay: 300ms; animation-duration: 1s;">
+          <div class="hidden md:block absolute -bottom-10 lg:-bottom-18 left-8 lg:-left-20 p-6 md:p-8 bg-white/80 backdrop-blur-md rounded-3xl border border-white/50 shadow-[0_20px_40px_rgba(0,0,0,0.08)] z-30 fade-in-up hover:-translate-y-2 transition-transform duration-300 transform-gpu" style="animation-delay: 300ms; animation-duration: 1s;">
             <div class="flex items-center gap-5">
               <div class="w-14 h-14 rounded-2xl bg-tertiary-100 flex items-center justify-center text-tertiary-700 shadow-inner">
                 <Icon :name="hero.infoCard.icon" class="text-3xl" />
