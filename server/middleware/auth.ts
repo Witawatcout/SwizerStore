@@ -7,9 +7,9 @@ export default defineEventHandler((event) => {
   // /api/auth/* → public (login, logout, me)
   if (!path.startsWith("/api/") || path.startsWith("/api/auth/")) return;
 
-  // GET /api/products, /api/categories → public (หน้าเว็บสาธารณะต้องดึงข้อมูลได้)
+  // GET /api/products, /api/categories, /api/news → public (หน้าเว็บสาธารณะต้องดึงข้อมูลได้)
   const method = getMethod(event);
-  if (method === "GET" && (path.startsWith("/api/products") || path.startsWith("/api/categories"))) return;
+  if (method === "GET" && (path.startsWith("/api/products") || path.startsWith("/api/categories") || path.startsWith("/api/news"))) return;
 
   // ตรวจ token สำหรับ API ที่ต้อง login
   const token = getHeader(event, "authorization")?.replace("Bearer ", "");

@@ -16,6 +16,10 @@ const items = computed<NavigationMenuItem[]>(() => [{
   label: 'Categories',
   icon: 'i-lucide-folder-tree',
   to: '/Admin/Categories'
+}, {
+  label: 'News',
+  icon: 'i-lucide-newspaper',
+  to: '/Admin/News'
 }])
 </script>
 

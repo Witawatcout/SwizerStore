@@ -108,15 +108,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { newsItems } from '~/assets/news'
 
 const route = useRoute()
-const post = computed(() => newsItems.find(n => n.id === route.params.id))
+const { data: post } = await useFetch<any>(`/api/news/${route.params.id}`)
+const { data: allNews } = await useFetch<any[]>('/api/news')
 
 const relatedPosts = computed(() => {
-  return newsItems.filter(p => p.id !== route.params.id).slice(0, 3)
+  if (!allNews.value) return []
+  return allNews.value.filter(p => p.id !== route.params.id).slice(0, 3)
 })
 
 useHead({

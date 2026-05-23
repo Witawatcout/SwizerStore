@@ -23,8 +23,8 @@ export default defineEventHandler(async (event) => {
   const ext = file.filename.split('.').pop() || 'png'
   const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`
 
-  // บันทึกไฟล์ลงโฟลเดอร์ public/uploads
-  const uploadDir = join(process.cwd(), 'public', 'uploads')
+  // บันทึกไฟล์ลงโฟลเดอร์ uploads ด้านนอกสุด
+  const uploadDir = join(process.cwd(), 'uploads')
   await mkdir(uploadDir, { recursive: true })
   await writeFile(join(uploadDir, uniqueName), file.data)
 

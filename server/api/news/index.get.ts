@@ -1,11 +1,9 @@
 import { query } from '@@/server/utils/db';
 
 export default defineEventHandler(async (event) => {
-  const id = decodeURIComponent(getRouterParam(event, 'id') || '');
-  
   try {
-    await query('DELETE FROM categories WHERE id=?', [id]);
-    return { success: true, message: 'Category deleted successfully' };
+    const rows = await query('SELECT * FROM news ORDER BY created_at DESC');
+    return rows;
   } catch (error: any) {
     throw createError({ statusCode: 500, statusMessage: error.message });
   }

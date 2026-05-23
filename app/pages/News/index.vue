@@ -136,7 +136,8 @@
 </template>
 
 <script setup lang="ts">
-import { newsItems } from '~/assets/news'
+const { data } = await useFetch<any[]>('/api/news')
+const newsItems = computed(() => data.value || [])
 
 useHead({
   title: 'News & Articles | Swizer Superfoods'
@@ -146,8 +147,8 @@ const categories = [
   'ทั้งหมด', 'สุขภาพองค์รวม', 'สูตรอาหารคลีน', 'เกษตรอินทรีย์', 'รีวิวผลิตภัณฑ์', 'Lifestyle'
 ]
 
-const heroArticle = computed(() => newsItems[0] || null)
-const largePost = computed(() => newsItems[1] || null)
-const sidePosts = computed(() => newsItems.slice(2, 4))
-const bottomPosts = computed(() => newsItems.slice(4))
+const heroArticle = computed(() => newsItems.value[0] || null)
+const largePost = computed(() => newsItems.value[1] || null)
+const sidePosts = computed(() => newsItems.value.slice(2, 4))
+const bottomPosts = computed(() => newsItems.value.slice(4))
 </script>

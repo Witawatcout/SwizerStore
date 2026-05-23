@@ -1,7 +1,7 @@
 import { query } from '@@/server/utils/db';
 
 export default defineEventHandler(async (event) => {
-  const id = getRouterParam(event, 'id');
+  const id = decodeURIComponent(getRouterParam(event, 'id') || '');
 
   try {
     const rows = await query(
