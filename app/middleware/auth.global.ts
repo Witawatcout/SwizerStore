@@ -19,7 +19,7 @@ export default defineNuxtRouteMiddleware((to) => {
   }
 
   // ✅ ถ้า path เริ่มด้วย /admin → ต้อง role = admin
-  if (to.path.startsWith("/admin") && auth.user?.role !== "admin") {
+  if (to.path.toLowerCase().startsWith("/admin") && auth.user?.role !== "admin") {
     return navigateTo("/") // หรือ navigateTo("/403")
   }
 })

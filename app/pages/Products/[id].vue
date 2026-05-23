@@ -145,19 +145,23 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { products } from '~/assets/data'
-
-useHead({
-  title: 'Product Details | Swizer Superfoods'
-})
 
 const route = useRoute()
-const productId = computed(() => route.params.id)
+const productId = computed(() => route.params.id as string)
 
-const product = computed(() => products.find(p => p.id === productId.value))
+// ดึงข้อมูลสินค้าจาก API
+const { data: product, status } = useLazyFetch<any>(() => `/api/products/${productId.value}`)
+
+// ดึงสินค้าทั้งหมดสำหรับ related products
+const { data: allProducts } = useLazyFetch<any[]>('/api/products')
+
+useHead({
+  title: computed(() => product.value ? `${product.value.name} | Swizer Superfoods` : 'Product Details | Swizer Superfoods')
+})
 
 const relatedProducts = computed(() => {
-  return products.filter(p => p.id !== productId.value).slice(0, 4)
+  if (!allProducts.value) return []
+  return allProducts.value.filter((p: any) => p.id !== productId.value).slice(0, 4)
 })
 
 const qty = ref(1)

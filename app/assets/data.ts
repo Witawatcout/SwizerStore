@@ -2,9 +2,34 @@ import Coffee from '@@/public/Products/Coffee.png'
 import Grains from '@@/public/Products/Grains.png'
 import Protein from '@@/public/Products/Protein.png'  
 
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  parentId: string | null; // ถ้าเป็น null คือหมวดหมู่หลัก (Main Category)
+}
+
+// โครงสร้างหมวดหมู่แบบลำดับชั้น (Hierarchical Categories)
+export const categories: Category[] = [
+  // หมวดหมู่หลัก (Main Categories)
+  { id: 'food', name: 'อาหาร', slug: 'food', parentId: null },
+  { id: 'supplement', name: 'อาหารเสริม', slug: 'supplement', parentId: null },
+  
+  // หมวดหมู่ย่อย ระดับ 1 (Sub Categories)
+  { id: 'protein', name: 'โปรตีน', slug: 'protein', parentId: 'food' },
+  { id: 'beverage', name: 'เครื่องดื่ม', slug: 'beverage', parentId: 'food' },
+  { id: 'grains', name: 'ธัญพืช', slug: 'grains', parentId: 'food' },
+
+  // หมวดหมู่ย่อย ระดับ 2 (Sub-sub Categories - ถ้ามี)
+  { id: 'whey-protein', name: 'เวย์โปรตีน', slug: 'whey-protein', parentId: 'protein' },
+  { id: 'plant-protein', name: 'โปรตีนพืช', slug: 'plant-protein', parentId: 'protein' },
+  { id: 'coffee', name: 'กาแฟ', slug: 'coffee', parentId: 'beverage' },
+];
+
 export const products = [
   {
     id: 'chia-seeds',
+    categoryId: 'grains', // เชื่อมโยงไปยังหมวดหมู่
     name: 'สไวเซอร์ เนเชอรัล เจียซีด 100%',
     description: 'เมล็ดเจีย เป็นธัญพืชมหัศจรรย์ ตั้งแต่ก่อนคริสต์ศักราช 3500 ปี เพราะเป็นอาหารดูแลสุขภาพ ของกลุ่มชาติพันธุ์ในประเทศเม็กซิโก เนื่องจากเมล็ดเจียมีความสมบูรณ์ในด้านคุณค่าอาหาร และสามารถร่วมรับประทานกับอาหารทั่วไป รวมถึงเครื่องดื่มทุกประเภท ปัจจุบันเมล็ดเจียจึงเป็นที่นิยมแพร่หลายในหมู่นักกีฬา นักโภชนาการ กลุ่มชีวจิต มังสวิรัติ อีกทั้งยังเป็นที่นิยมชื่นชอบของผู้ที่ต้องการควบคุมน้ำหนัก ความดัน เบาหวาน และผู้ที่ต้องการดูแลผิวพรรณ สุขภาพภายใน บริโภคอย่างแพร่หลาย',
     price: 350,
@@ -26,6 +51,7 @@ export const products = [
   },
   {
     id: 'whey-protein-vanilla',
+    categoryId: 'whey-protein', // เชื่อมโยงไปยังหมวดหมู่ เวย์โปรตีน (อยู่ภายใต้โปรตีน)
     name: 'เวย์โปรตีน ไอโซเลต รสวนิลา',
     description: 'เวย์โปรตีน ไอโซเลต (Whey Protein Isolate) รสวนิลา เวย์โปรตีนที่เกิดจากนำเวย์โปรตีนคอนเซนเทรทมาผ่านกรรมวิธีต่างๆเพื่อให้ได้โปรตีนเข้มข้นมากขึ้น โดยอนุภาคของโปรตีนจะเล็กลงทำให้ดูดซึมเข้าสู่ร่างกายได้เร็วขึ้น เวย์โปรตีนชนิดนี้จะมีไขมันเเละน้ำตาลแลตโตสในปริมาณที่น้อยมาก จึงเหมาะกับคนที่ชอบออกกำลังกาย เพื่อเพิ่มกล้ามเนื้อ ควบคู่กับการควบคุมไขมัน เเละคาร์โบไฮเดรตเเบบไม่ต้องกลัวอ้วน ให้ให้ออกกำลังกายได้อย่างมีประสิทธิภาพมากขึ้น',
     price: 890,
@@ -47,6 +73,7 @@ export const products = [
   },
   {
     id: 'acai-coffee',
+    categoryId: 'coffee', // เชื่อมโยงไปยังหมวดหมู่ กาแฟ (อยู่ภายใต้เครื่องดื่ม)
     name: 'กาแฟ ผสมอาซาอิเบอร์รี่',
     description: 'กาแฟ ผสมอาซาอิ กาแฟที่มีคุณค่าจากซุปเปอร์ฟู้ด คือ อาซาอิ เบอร์รี่ เข้ากันอย่างลงตัวกับกาแฟพันธุ์คัดพิเศษ ที่หอมกรุ่น รวมถึงส่วนผสมอื่นๆ ที่ให้ประโยชน์ ต่อร่างกาย และผิวพรรณ เช่น ถั่วขาว แอลคานิทีน ไคโตซาน สาหร่าย สไปรูลิน่า และคอลลาเจนจากปลาทะเลน้ำลึก ในทุกซองที่คุณดื่ม “ หอม อิ่ม หุ่นดี มีไฟเบอร์สูง ”',
     price: 250,
