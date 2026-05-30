@@ -2,10 +2,11 @@
 import { defineStore } from "pinia";
 
 interface Auth {
-  user: { username: string; email: string; role: string; token: string };
+  user: { id?: number; username: string; email: string; role: string; token: string };
 }
 
 interface User {
+  id?: number;
   username: string;
   email: string;
   role: string;
@@ -26,6 +27,7 @@ export const useAuthStore = defineStore(
       });
 
       user.value = {
+        id: res.user.id,
         username: res.user.username,
         email: res.user.email,
         role: res.user.role,

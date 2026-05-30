@@ -121,7 +121,8 @@ const formatPrice = (price: number) => {
 
         <!-- Checkout Button -->
         <button :disabled="cartStore.items.length === 0"
-          class="w-full py-4 rounded-2xl bg-neutral-950 text-white font-black text-base tracking-wide hover:bg-primary-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300 shadow-lg shadow-neutral-950/20 hover:shadow-primary-600/20">
+          class="w-full py-4 rounded-2xl bg-neutral-950 text-white font-black text-base tracking-wide hover:bg-primary-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300 shadow-lg shadow-neutral-950/20 hover:shadow-primary-600/20"
+          @click="cartStore.closeCart(); navigateTo('/cart')">
           ดำเนินการสั่งซื้อ →
         </button>
 

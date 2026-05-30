@@ -16,11 +16,13 @@ const toast = useToast()
 const isModalOpen = ref(false)
 const isEditing = ref(false)
 const isSaving = ref(false)
+const selectedCategory = ref('all')
+const selectedStatus = ref('all')
 
 // === Form State ===
 const form = reactive({
   id: '', categoryId: '', name: '', description: '',
-  price: 0, unit: '', image: '', badge: '',
+  price: 0, stock: 0, is_active: true, unit: '', image: '', badge: '',
   tags: [] as string[],
   benefits: [] as { icon: string; title: string; text: string }[],
   rituals: [] as { step: string; title: string; text: string }[],
@@ -107,11 +109,25 @@ function removePendingGalleryImage(index: number) {
 // รูป main ที่แสดง (pending preview หรือ URL ที่มีอยู่แล้ว)
 const displayMainImage = computed(() => pendingMainImagePreview.value || form.image)
 
+const filteredData = computed(() => {
+  return (props.data || []).filter((product: any) => {
+    const matchesCategory = selectedCategory.value === 'all' || product.category_id === selectedCategory.value
+    const active = Number(product.is_active ?? 1) === 1
+    const matchesStatus =
+      selectedStatus.value === 'all' ||
+      (selectedStatus.value === 'active' && active) ||
+      (selectedStatus.value === 'inactive' && !active)
+    return matchesCategory && matchesStatus
+  })
+})
+
 const columns: TableColumn<any>[] = [
   { accessorKey: 'image', header: 'รูปภาพ' },
   { accessorKey: 'name', header: 'ชื่อสินค้า' },
   { accessorKey: 'category_name', header: 'หมวดหมู่' },
   { accessorKey: 'price', header: 'ราคา' },
+  { accessorKey: 'stock', header: 'Stock' },
+  { accessorKey: 'is_active', header: 'Status' },
   { accessorKey: 'unit', header: 'หน่วย' },
   { accessorKey: 'badge', header: 'Badge' },
   { id: 'actions', header: '' }
@@ -120,7 +136,7 @@ const columns: TableColumn<any>[] = [
 function resetForm() {
   Object.assign(form, {
     id: '', categoryId: '', name: '', description: '',
-    price: 0, unit: '', image: '', badge: '',
+    price: 0, stock: 0, is_active: true, unit: '', image: '', badge: '',
     tags: [], benefits: [], rituals: [], gallery: []
   })
   newGalleryUrl.value = ''
@@ -144,6 +160,8 @@ function openEdit(product: any) {
     name: product.name,
     description: product.description || '',
     price: product.price,
+    stock: Number(product.stock || 0),
+    is_active: Number(product.is_active ?? 1) === 1,
     unit: product.unit || '',
     image: product.image || '',
     badge: product.badge || '',
@@ -188,7 +206,7 @@ function removeGalleryImage(index: number) {
 
 // === Save / Delete ===
 async function handleSave() {
-  if (!form.id || !form.name || !form.price) {
+  if (!form.id || !form.name || Number(form.price) <= 0 || Number(form.stock) < 0) {
     toast.add({ title: 'กรุณากรอกข้อมูลให้ครบ', color: 'error', icon: 'i-lucide-alert-circle' })
     return
   }
@@ -245,8 +263,27 @@ async function handleDelete(id: string) {
       <UButton icon="i-lucide-plus" label="เพิ่มสินค้า" color="primary" @click="openNew" />
     </div>
 
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+      <USelect
+        v-model="selectedCategory"
+        :items="[{ label: 'ทุกหมวดหมู่', value: 'all' }, ...(categories || []).map((c: any) => ({ label: c.name, value: c.id }))]"
+        icon="i-lucide-folder"
+        class="w-full"
+      />
+      <USelect
+        v-model="selectedStatus"
+        :items="[
+          { label: 'ทุกสถานะ', value: 'all' },
+          { label: 'Active', value: 'active' },
+          { label: 'Inactive', value: 'inactive' }
+        ]"
+        icon="i-lucide-toggle-left"
+        class="w-full"
+      />
+    </div>
+
     <!-- Table -->
-    <UTable :data="data" :columns="columns" :loading="loading">
+    <UTable :data="filteredData" :columns="columns" :loading="loading">
       <template #image-cell="{ row }">
         <img v-if="row.original.image" :src="row.original.image" class="h-10 w-10 rounded-lg object-cover" />
         <div v-else class="h-10 w-10 rounded-lg bg-elevated flex items-center justify-center">
@@ -255,6 +292,12 @@ async function handleDelete(id: string) {
       </template>
       <template #price-cell="{ row }">
         <span class="font-medium">{{ Number(row.original.price).toLocaleString() }} ฿</span>
+      </template>
+      <template #stock-cell="{ row }">
+        <UBadge :label="String(row.original.stock || 0)" :color="Number(row.original.stock || 0) > 0 ? 'neutral' : 'warning'" variant="subtle" size="sm" />
+      </template>
+      <template #is_active-cell="{ row }">
+        <UBadge :label="Number(row.original.is_active ?? 1) === 1 ? 'Active' : 'Inactive'" :color="Number(row.original.is_active ?? 1) === 1 ? 'success' : 'neutral'" variant="subtle" size="sm" />
       </template>
       <template #badge-cell="{ row }">
         <UBadge v-if="row.original.badge" :label="row.original.badge" variant="subtle" size="sm" />
@@ -306,8 +349,14 @@ async function handleDelete(id: string) {
               <UFormField label="ราคา" required class="w-full">
                 <UInput v-model="form.price" type="number" placeholder="0" icon="i-lucide-banknote" autocomplete="off" class="w-full" />
               </UFormField>
+              <UFormField label="Stock" required class="w-full">
+                <UInput v-model="form.stock" type="number" min="0" placeholder="0" icon="i-lucide-box" autocomplete="off" class="w-full" />
+              </UFormField>
               <UFormField label="หน่วย" class="w-full">
                 <UInput v-model="form.unit" placeholder="e.g. ซอง" icon="i-lucide-ruler" autocomplete="off" class="w-full" />
+              </UFormField>
+              <UFormField label="Status" class="w-full">
+                <USwitch v-model="form.is_active" label="Active" />
               </UFormField>
 
               <UFormField label="Badge" class="col-span-2 w-full" hint="ไม่บังคับ">

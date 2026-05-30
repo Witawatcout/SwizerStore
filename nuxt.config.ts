@@ -6,6 +6,13 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   vite: {
     plugins: [tailwindcss()],
+    server: {
+      allowedHosts: [
+        "outsell-illicitly-scary.ngrok-free.dev",
+        ".ngrok-free.dev",
+        ".ngrok-free.app",
+      ],
+    },
   },
 
   runtimeConfig: {
@@ -14,6 +21,9 @@ export default defineNuxtConfig({
     dbPass: process.env.DB_PASS,
     dbName: process.env.DB_NAME,
     dbPort: process.env.DB_PORT,
+    baseUrl: process.env.BASE_URL || "http://localhost:3000",
+    omiseSecretKey: process.env.OMISE_SECRET_KEY,
+    omiseWebhookSecret: process.env.OMISE_WEBHOOK_SECRET,
 
     envName: process.env.ENV_NAME,
 
@@ -24,9 +34,16 @@ export default defineNuxtConfig({
     // ค่า public จะถูก expose ไป client ได้
     public: {
       apiBase: process.env.API_BASE || "http://localhost:3000",
+      omisePublicKey: process.env.OMISE_PUBLIC_KEY || "",
     },
   },
-    ui: {
+  fonts: {
+    families: [
+      { name: "Epilogue", provider: "none" },
+      { name: "Noto Sans Thai", provider: "none" },
+    ],
+  },
+  ui: {
     colorMode: false,
   },
   modules: [

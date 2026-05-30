@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
 
   // ดึงเฉพาะ field ที่ต้องใช้ (ไม่ SELECT *)
   const users = await query<any>(
-    "SELECT username, password, email, role FROM users WHERE username = ? LIMIT 1",
+    "SELECT id, username, password, email, role FROM users WHERE username = ? LIMIT 1",
     [body.username]
   );
 
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: genericError });
   }
 
-  const token = signJwt({ username: user.username, email: user.email, role: user.role });
+  const token = signJwt({ id: user.id, username: user.username, email: user.email, role: user.role });
 
   // ส่ง token กลับ client
   return {
@@ -50,6 +50,7 @@ export default defineEventHandler(async (event) => {
       username: user.username,
       email: user.email,
       role: user.role,
+      id: user.id,
       token,
     },
   };

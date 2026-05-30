@@ -5,6 +5,12 @@ import { join } from 'path';
 export default defineEventHandler(async (event) => {
   const id = decodeURIComponent(getRouterParam(event, 'id') || '');
   const body = await readBody(event);
+  const stock = Number(body.stock || 0);
+  const isActive = body.is_active === false || body.isActive === false || body.is_active === 0 ? 0 : 1;
+
+  if (!body.name || Number(body.price) <= 0 || stock < 0) {
+    throw createError({ statusCode: 400, statusMessage: "Invalid product data" });
+  }
   
   try {
     // ดึงข้อมูลสินค้าเดิมเพื่อเปรียบเทียบรูปภาพที่อาจถูกลบ
@@ -50,10 +56,10 @@ export default defineEventHandler(async (event) => {
 
     await query(
       `UPDATE products 
-       SET category_id=?, name=?, description=?, price=?, unit=?, image=?, badge=?, tags=?, benefits=?, rituals=?, gallery=? 
+       SET category_id=?, name=?, description=?, price=?, stock=?, is_active=?, unit=?, image=?, badge=?, tags=?, benefits=?, rituals=?, gallery=? 
        WHERE id=?`,
       [
-        body.categoryId, body.name, body.description, body.price, body.unit, body.image, body.badge,
+        body.categoryId, body.name, body.description, body.price, stock, isActive, body.unit, body.image, body.badge,
         JSON.stringify(body.tags || []),
         JSON.stringify(body.benefits || []),
         JSON.stringify(body.rituals || []),

@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
 
   // ตรวจสอบว่า user ยังอยู่ใน DB จริง (กรณีถูกลบ/ban แล้ว token ยังไม่หมดอายุ)
   const users = await query<any>(
-    "SELECT username, email, role FROM users WHERE username = ? LIMIT 1",
+    "SELECT id, username, email, role FROM users WHERE username = ? LIMIT 1",
     [payload.username]
   );
 

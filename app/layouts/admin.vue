@@ -20,6 +20,10 @@ const items = computed<NavigationMenuItem[]>(() => [{
   label: 'News',
   icon: 'i-lucide-newspaper',
   to: '/Admin/News'
+}, {
+  label: 'Orders',
+  icon: 'i-lucide-receipt-text',
+  to: '/Admin/Orders'
 }])
 </script>
 

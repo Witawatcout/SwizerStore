@@ -3,7 +3,7 @@ definePageMeta({ layout: 'admin' })
 
 useHead({ title: 'จัดการสินค้า | Admin' })
 
-const { data: productsData, status: productsStatus, refresh: refreshProducts } = useAuthFetch<any>('/api/products')
+const { data: productsData, status: productsStatus, refresh: refreshProducts } = useAuthFetch<any>('/api/products?includeInactive=1')
 const { data: categoriesData } = useAuthFetch<any>('/api/categories')
 
 const loading = computed(() => productsStatus.value === 'pending' || productsStatus.value === 'idle')

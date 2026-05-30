@@ -8,15 +8,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: "Unauthorized" });
   }
 
-  const users = await query<any>(
-    "SELECT id, username, email, role, created_at, updated_at FROM users WHERE id = ? LIMIT 1",
-    [auth.id]
-  );
-
-  if (users.length === 0) {
-    throw createError({ statusCode: 404, statusMessage: "User not found" });
-  }
-
   const profiles = await query<any>(
     `SELECT first_name, last_name, email, phone, address, address_line2, subdistrict, district, province, postal_code, delivery_note
      FROM user_shipping_profiles
@@ -25,8 +16,18 @@ export default defineEventHandler(async (event) => {
     [auth.id]
   );
 
-  return {
-    user: users[0],
-    shipping: profiles[0] || null,
-  };
+  if (profiles.length) {
+    return { customer: profiles[0], source: "profile" };
+  }
+
+  const rows = await query<any>(
+    `SELECT first_name, last_name, email, phone, address, address_line2, subdistrict, district, province, postal_code, delivery_note
+     FROM customers
+     WHERE user_id = ?
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [auth.id]
+  );
+
+  return { customer: rows[0] || null, source: rows[0] ? "latest_order" : null };
 });

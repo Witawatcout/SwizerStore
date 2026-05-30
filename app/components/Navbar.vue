@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 import Logo from '@@/public/Swizer/SwizerMainLogo.png'
-import { useAuthStore } from "@/store/auth"
-import { useCartStore } from "@/store/cart"
+import { useAuthStore } from '@/store/auth'
+import { useCartStore } from '@/store/cart'
 
 const auth = useAuthStore()
 const cart = useCartStore()
 
-const items = computed<NavigationMenuItem[]>(() => [
+const isLoggedIn = computed(() => Boolean(auth.token))
+const isAdmin = computed(() => auth.user?.role === 'admin')
+
+const mainItems = computed<NavigationMenuItem[]>(() => [
   { label: 'หน้าแรก', to: '/' },
   { label: 'ผลิตภัณฑ์', to: '/products' },
   { label: 'เกี่ยวกับเรา', to: '/about' },
@@ -15,106 +18,189 @@ const items = computed<NavigationMenuItem[]>(() => [
   { label: 'ติดต่อเรา', to: '/contact' },
 ])
 
-const userMenuItems = computed(() => [
-  [
+const mobileItems = computed<NavigationMenuItem[]>(() => {
+  const items = [...mainItems.value]
+
+  if (isLoggedIn.value) {
+    items.push(
+      { label: 'ตั้งค่าโปรไฟล์', icon: 'i-lucide-user-cog', to: '/profile' },
+      { label: 'คำสั่งซื้อของฉัน', icon: 'i-lucide-shopping-bag', to: '/orders' },
+    )
+  }
+
+  if (isAdmin.value) {
+    items.push(
+      { label: 'Admin Dashboard', icon: 'i-lucide-layout-dashboard', to: '/Admin' },
+      { label: 'จัดการคำสั่งซื้อ', icon: 'i-lucide-receipt-text', to: '/Admin/Orders' },
+      { label: 'จัดการสินค้า', icon: 'i-lucide-package', to: '/Admin/Products' },
+    )
+  }
+
+  return items
+})
+
+const accountMenuItems = computed(() => {
+  if (!isLoggedIn.value) return []
+
+  const groups = [
+    [
+      {
+        label: auth.user?.username || 'บัญชีของฉัน',
+        icon: 'i-lucide-user-circle',
+        disabled: true,
+      },
+    ],
+    [
+      { label: 'ตั้งค่าโปรไฟล์', icon: 'i-lucide-user-cog', to: '/profile' },
+      { label: 'คำสั่งซื้อของฉัน', icon: 'i-lucide-shopping-bag', to: '/orders' },
+      { label: 'ตะกร้าสินค้า', icon: 'i-lucide-shopping-cart', to: '/cart' },
+    ],
+  ]
+
+  if (isAdmin.value) {
+    groups.push([
+      { label: 'Admin Dashboard', icon: 'i-lucide-layout-dashboard', to: '/Admin' },
+      { label: 'คำสั่งซื้อทั้งหมด', icon: 'i-lucide-receipt-text', to: '/Admin/Orders' },
+      { label: 'จัดการสินค้า', icon: 'i-lucide-package', to: '/Admin/Products' },
+    ])
+  }
+
+  groups.push([
     {
-      label: auth.user?.username || 'บัญชีของฉัน',
-      slot: 'account',
-      disabled: true,
+      label: 'ออกจากระบบ',
+      icon: 'i-lucide-log-out',
+      onSelect: () => signOut(),
     },
-  ],
-  [
-    { label: 'โปรไฟล์', icon: 'mynaui:user-circle', to: '/profile' },
-    { label: 'รายการสั่งซื้อ', icon: 'mynaui:shopping-bag', to: '/orders' },
-  ],
-  [
-    { label: 'ออกจากระบบ', icon: 'mynaui:logout', click: () => auth.logout() },
-  ],
-])
+  ])
+
+  return groups
+})
+
+function signOut() {
+  auth.logout()
+  navigateTo('/')
+}
 </script>
 
 <template>
-  <UHeader mode="slideover"
-    class="bg-neutral-950/95 backdrop-blur-md border-b border-white/5 sticky top-0 z-50 transition-all duration-300"
-    :toggle="{ variant: 'ghost', class: 'text-white text-3xl p-3' }" :ui="{
+  <UHeader
+    mode="slideover"
+    class="sticky top-0 z-50 border-b border-white/5 bg-neutral-950/95 shadow-xl shadow-neutral-900/30 backdrop-blur-md transition-all duration-300"
+    :toggle="{ variant: 'ghost', class: 'p-3 text-3xl text-white' }"
+    :ui="{
       header: 'bg-neutral-950/95 backdrop-blur-md border-b border-white/5 shadow-xl shadow-neutral-900/30',
       body: 'bg-white',
-    }">
-    <!-- Brand Logo -->
+    }"
+  >
     <template #title>
-      <NuxtLink to="/" class="flex items-center gap-3">
-        <img :src="Logo" alt="Swizer Logo" style="height: 48px; width: auto; object-fit: contain;" />
+      <NuxtLink to="/" class="flex items-center gap-3" aria-label="Swizer Store">
+        <img :src="Logo" alt="Swizer Logo" class="h-12 w-auto object-contain" />
       </NuxtLink>
     </template>
 
-    <!-- Desktop Navigation -->
-    <UNavigationMenu :items="items" class="hidden lg:flex text-white/70" :ui="{
-      link: 'font-headline hover:text-primary-400 transition-colors px-5 py-2 text-base uppercase bg-transparent hover:bg-transparent aria-[current=page]:bg-transparent aria-[current=page]:text-primary-400',
-    }" />
+    <UNavigationMenu
+      :items="mainItems"
+      class="hidden text-white/70 lg:flex"
+      :ui="{
+        link: 'font-headline hover:text-primary-400 transition-colors px-5 py-2 text-base uppercase bg-transparent hover:bg-transparent aria-[current=page]:bg-transparent aria-[current=page]:text-primary-400',
+      }"
+    />
 
-    <!-- Right Actions -->
     <template #right>
       <div class="flex items-center gap-2 md:gap-3">
+        <UTooltip v-if="isAdmin" text="Admin">
+          <UButton
+            to="/Admin"
+            icon="i-lucide-shield-check"
+            color="primary"
+            variant="ghost"
+            class="hidden rounded-full text-white hover:bg-white/5 hover:text-primary-400 md:inline-flex"
+            aria-label="Admin"
+          />
+        </UTooltip>
 
-        <!-- Search -->
-        <div class="hidden md:block">
-          <UTooltip text="ค้นหา">
-            <button class="text-white hover:text-primary-400 hover:bg-white/5 rounded-full p-3 transition-colors">
-              <Icon name="mynaui:search" class="text-2xl block" />
-            </button>
-          </UTooltip>
-        </div>
+        <UTooltip text="ค้นหา">
+          <button class="hidden rounded-full p-3 text-white transition-colors hover:bg-white/5 hover:text-primary-400 md:block">
+            <Icon name="i-lucide-search" class="block text-2xl" />
+          </button>
+        </UTooltip>
 
-        <!-- Cart Button — badge ทำเองแทน UChip -->
         <UTooltip text="ตะกร้าสินค้า">
-          <button data-cart-icon
-            class="relative text-white hover:text-primary-400 hover:bg-white/5 rounded-full p-3 transition-colors"
-            @click="cart.toggleCart()">
-            <Icon name="i-heroicons-shopping-cart" class="text-2xl block" />
+          <button
+            data-cart-icon
+            class="relative rounded-full p-3 text-white transition-colors hover:bg-white/5 hover:text-primary-400"
+            @click="cart.toggleCart()"
+          >
+            <Icon name="i-lucide-shopping-cart" class="block text-2xl" />
 
-            <!-- Badge ตัวเลข -->
             <Transition name="badge">
-              <span v-if="cart.totalItems > 0"
-                class="absolute top-0.5 right-0.5 min-w-[20px] h-5 px-1 rounded-full bg-primary-500 text-white text-xs font-black flex items-center justify-center leading-none pointer-events-none">
+              <span
+                v-if="cart.totalItems > 0"
+                class="pointer-events-none absolute right-0.5 top-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary-500 px-1 text-xs font-black leading-none text-white"
+              >
                 {{ cart.totalItems > 99 ? '99+' : cart.totalItems }}
               </span>
             </Transition>
           </button>
         </UTooltip>
 
-        <!-- Auth: Authenticated -->
-        <UDropdown v-if="auth.token" :items="userMenuItems" :popper="{ placement: 'bottom-end' }" class="z-50">
-          <UButton color="neutral" variant="ghost" class="p-1.5 rounded-full hover:bg-white/10 transition-colors">
+        <UDropdownMenu v-if="isLoggedIn" :items="accountMenuItems" :ui="{ content: 'w-64' }">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            class="rounded-full p-1.5 transition-colors hover:bg-white/10"
+          >
             <UAvatar :alt="auth.user?.username" size="md" class="ring-2 ring-primary-500/30" />
           </UButton>
+        </UDropdownMenu>
 
-          <template #account="{ item }">
-            <div class="text-left py-1">
-              <p class="text-xs text-neutral-400 font-bold uppercase tracking-widest mb-0.5">Signed in as</p>
-              <p class="truncate font-black text-neutral-900">{{ auth.user?.email }}</p>
-            </div>
-          </template>
-        </UDropdown>
-
-        <!-- Auth: Guest -->
-        <div v-else>
-          <UTooltip text="เข้าสู่ระบบ">
-            <button class="text-white hover:text-primary-400 hover:bg-white/5 rounded-full p-3 transition-colors"
-              @click="navigateTo('/login')">
-              <Icon name="mynaui:login" class="text-2xl block" />
-            </button>
-          </UTooltip>
-        </div>
-
+        <UTooltip v-else text="เข้าสู่ระบบ">
+          <button
+            class="rounded-full p-3 text-white transition-colors hover:bg-white/5 hover:text-primary-400"
+            @click="navigateTo('/login')"
+          >
+            <Icon name="i-lucide-log-in" class="block text-2xl" />
+          </button>
+        </UTooltip>
       </div>
     </template>
 
-    <!-- Mobile Slideover -->
     <template #body>
-      <div class="flex flex-col h-full fade-in-up">
-        <UNavigationMenu :items="items" orientation="vertical" class="flex-1 space-y-2" :ui="{
-          link: 'font-headline text-2xl font-black py-5 px-0 transition-all border-none active:scale-95 text-neutral-950 hover:text-primary-500 bg-transparent hover:bg-transparent aria-[current=page]:bg-transparent aria-[current=page]:text-primary-600',
-        }" />
+      <div class="flex h-full flex-col gap-6">
+        <UNavigationMenu
+          :items="mobileItems"
+          orientation="vertical"
+          class="flex-1 space-y-2"
+          :ui="{
+            link: 'font-headline text-2xl font-black py-5 px-0 transition-all border-none active:scale-95 text-neutral-950 hover:text-primary-500 bg-transparent hover:bg-transparent aria-[current=page]:bg-transparent aria-[current=page]:text-primary-600',
+          }"
+        />
+
+        <div class="border-t border-neutral-200 pt-4">
+          <div v-if="isLoggedIn" class="space-y-3">
+            <div class="text-sm text-neutral-500">
+              เข้าสู่ระบบด้วย
+              <span class="block truncate font-bold text-neutral-950">{{ auth.user?.email }}</span>
+            </div>
+            <UButton
+              label="ออกจากระบบ"
+              icon="i-lucide-log-out"
+              color="neutral"
+              variant="outline"
+              block
+              @click="signOut"
+            />
+          </div>
+
+          <UButton
+            v-else
+            label="เข้าสู่ระบบ"
+            icon="i-lucide-log-in"
+            to="/login"
+            color="primary"
+            block
+          />
+        </div>
       </div>
     </template>
   </UHeader>
@@ -132,7 +218,6 @@ const userMenuItems = computed(() => [
   backdrop-filter: blur(12px);
 }
 
-/* Badge pop animation */
 .badge-enter-active {
   animation: badge-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -153,7 +238,6 @@ const userMenuItems = computed(() => [
   }
 }
 
-/* Cart icon pulse เมื่อสินค้าบินมาถึง */
 .cart-pulse {
   animation: cart-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }

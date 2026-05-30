@@ -1,14 +1,17 @@
 import { query } from '@@/server/utils/db';
+import { getOptionalAuth } from '~~/server/utils/auth';
 
 export default defineEventHandler(async (event) => {
   const id = decodeURIComponent(getRouterParam(event, 'id') || '');
+  const auth = getOptionalAuth(event);
 
   try {
     const rows = await query(
       `SELECT p.*, c.name as category_name 
        FROM products p
        LEFT JOIN categories c ON p.category_id = c.id
-       WHERE p.id = ?`,
+       WHERE p.id = ?
+       ${auth?.role === 'admin' ? '' : 'AND COALESCE(p.is_active, 1) = 1'}`,
       [id]
     );
 
@@ -19,6 +22,8 @@ export default defineEventHandler(async (event) => {
     const row = rows[0] as any;
     return {
       ...row,
+      stock: Number(row.stock || 0),
+      is_active: Number(row.is_active ?? 1),
       tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : row.tags,
       benefits: typeof row.benefits === 'string' ? JSON.parse(row.benefits) : row.benefits,
       rituals: typeof row.rituals === 'string' ? JSON.parse(row.rituals) : row.rituals,
