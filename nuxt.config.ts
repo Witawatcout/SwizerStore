@@ -24,6 +24,13 @@ export default defineNuxtConfig({
     baseUrl: process.env.BASE_URL || "http://localhost:3000",
     omiseSecretKey: process.env.OMISE_SECRET_KEY,
     omiseWebhookSecret: process.env.OMISE_WEBHOOK_SECRET,
+    smtpHost: process.env.SMTP_HOST,
+    smtpPort: process.env.SMTP_PORT,
+    smtpUser: process.env.SMTP_USER,
+    smtpPass: process.env.SMTP_PASS,
+    smtpFrom: process.env.SMTP_FROM,
+    smtpSecure: process.env.SMTP_SECURE,
+    adminEmail: process.env.ADMIN_EMAIL,
 
     envName: process.env.ENV_NAME,
 

@@ -1,134 +1,305 @@
 <script setup lang="ts">
-import type { TableColumn } from '@nuxt/ui'
+import type { TableColumn } from "@nuxt/ui";
 
-definePageMeta({ layout: 'admin' })
-useHead({ title: 'Orders | Admin' })
+definePageMeta({ layout: "admin" });
+useHead({ title: "คำสั่งซื้อ | Admin" });
 
-const toast = useToast()
-const selectedStatus = ref('all')
-const selectedPaymentMethod = ref('all')
-const selectedDate = ref('')
-const selectedOrder = ref<any>(null)
-const isDetailOpen = ref(false)
+const toast = useToast();
+const route = useRoute();
 
-const queryParams = computed(() => {
-  const params = new URLSearchParams()
-  if (selectedStatus.value !== 'all') params.set('status', selectedStatus.value)
-  if (selectedPaymentMethod.value !== 'all') params.set('payment_method', selectedPaymentMethod.value)
-  if (selectedDate.value) params.set('date', selectedDate.value)
-  const query = params.toString()
-  return `/api/admin/orders${query ? `?${query}` : ''}`
-})
-
-const { data: orders, status, refresh } = useAuthFetch<any[]>(queryParams)
-const loading = computed(() => status.value === 'pending' || status.value === 'idle')
+const selectedStatus = ref("all");
+const selectedPaymentMethod = ref("all");
+const selectedDate = ref("");
+const selectedOrder = ref<any>(null);
+const isDetailOpen = ref(false);
+const isSendingEmail = ref(false);
+const page = ref(1);
+const pageSize = ref(10);
 
 const statusItems = [
-  { label: 'ทั้งหมด', value: 'all' },
-  { label: 'Pending', value: 'pending' },
-  { label: 'Paid', value: 'paid' },
-  { label: 'Processing', value: 'processing' },
-  { label: 'Shipped', value: 'shipped' },
-  { label: 'Delivered', value: 'delivered' },
-  { label: 'Cancelled', value: 'cancelled' },
-]
+  { label: "ทุกสถานะ", value: "all" },
+  { label: "รอดำเนินการ", value: "pending" },
+  { label: "ชำระเงินแล้ว", value: "paid" },
+  { label: "กำลังเตรียมสินค้า", value: "processing" },
+  { label: "จัดส่งแล้ว", value: "shipped" },
+  { label: "ส่งสำเร็จแล้ว", value: "delivered" },
+  { label: "ยกเลิกแล้ว", value: "cancelled" },
+];
+
+const editableStatusItems = statusItems.filter((item) => item.value !== "all");
 
 const paymentItems = [
-  { label: 'ทุกช่องทาง', value: 'all' },
-  { label: 'Credit card', value: 'credit_card' },
-  { label: 'PromptPay', value: 'promptpay' },
-]
+  { label: "ทุกช่องทาง", value: "all" },
+  { label: "บัตรเครดิต/เดบิต", value: "credit_card" },
+  { label: "พร้อมเพย์", value: "promptpay" },
+];
+
+const pageSizeItems = [
+  { label: "10 รายการ/หน้า", value: 10 },
+  { label: "20 รายการ/หน้า", value: 20 },
+  { label: "50 รายการ/หน้า", value: 50 },
+];
+
+const queryParams = computed(() => {
+  const params = new URLSearchParams();
+  if (selectedStatus.value !== "all") params.set("status", selectedStatus.value);
+  if (selectedPaymentMethod.value !== "all") params.set("payment_method", selectedPaymentMethod.value);
+  if (selectedDate.value) params.set("date", selectedDate.value);
+  const query = params.toString();
+  return `/api/admin/orders${query ? `?${query}` : ""}`;
+});
+
+const { data: orders, status, refresh } = useAuthFetch<any[]>(queryParams);
+const loading = computed(() => status.value === "pending" || status.value === "idle");
+const orderList = computed(() => orders.value || []);
+const totalOrders = computed(() => orderList.value.length);
+const totalPages = computed(() => Math.max(1, Math.ceil(totalOrders.value / Number(pageSize.value || 10))));
+const startItem = computed(() => (totalOrders.value ? (page.value - 1) * Number(pageSize.value) + 1 : 0));
+const endItem = computed(() => Math.min(page.value * Number(pageSize.value), totalOrders.value));
+const paginatedOrders = computed(() => {
+  const start = (page.value - 1) * Number(pageSize.value);
+  return orderList.value.slice(start, start + Number(pageSize.value));
+});
 
 const columns: TableColumn<any>[] = [
-  { accessorKey: 'id', header: 'Order' },
-  { accessorKey: 'customer_name', header: 'Customer' },
-  { accessorKey: 'payment_method', header: 'Payment' },
-  { accessorKey: 'payment_status', header: 'Payment status' },
-  { accessorKey: 'status', header: 'Status' },
-  { accessorKey: 'total', header: 'Total' },
-  { accessorKey: 'created_at', header: 'Date' },
-  { id: 'actions', header: '' },
-]
+  { accessorKey: "id", header: "เลขคำสั่งซื้อ" },
+  { accessorKey: "customer_name", header: "ลูกค้า" },
+  { accessorKey: "payment_method", header: "ช่องทางชำระเงิน" },
+  { accessorKey: "payment_status", header: "สถานะชำระเงิน" },
+  { accessorKey: "status", header: "สถานะคำสั่งซื้อ" },
+  { accessorKey: "total", header: "ยอดรวม" },
+  { accessorKey: "created_at", header: "วันที่สั่งซื้อ" },
+  { id: "actions", header: "" },
+];
 
-const formatPrice = (price: number) =>
-  new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(Number(price || 0))
+watch([selectedStatus, selectedPaymentMethod, selectedDate, pageSize], () => {
+  page.value = 1;
+});
 
-async function openDetail(id: string) {
-  selectedOrder.value = await $authFetch(`/api/admin/orders/${id}`)
-  isDetailOpen.value = true
+watch(totalPages, (value) => {
+  if (page.value > value) page.value = value;
+});
+
+function statusLabel(value: string) {
+  return statusItems.find((item) => item.value === value)?.label || value;
 }
 
-async function updateStatus(id: string, status: string) {
+function statusColor(value: string) {
+  if (value === "delivered") return "success";
+  if (value === "cancelled") return "error";
+  if (value === "shipped") return "info";
+  if (value === "processing") return "warning";
+  if (value === "paid") return "primary";
+  return "neutral";
+}
+
+function paymentMethodLabel(value: string) {
+  if (value === "promptpay") return "พร้อมเพย์";
+  if (value === "credit_card") return "บัตรเครดิต/เดบิต";
+  return value || "-";
+}
+
+function paymentStatusLabel(value: string) {
+  if (value === "success") return "ชำระเงินแล้ว";
+  if (value === "failed") return "ชำระเงินไม่สำเร็จ";
+  return "รอชำระเงิน";
+}
+
+function paymentStatusColor(value: string) {
+  if (value === "success") return "success";
+  if (value === "failed") return "error";
+  return "warning";
+}
+
+const formatPrice = (price: number) =>
+  new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB" }).format(Number(price || 0));
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleString("th-TH");
+}
+
+function goToPage(nextPage: number) {
+  page.value = Math.min(Math.max(nextPage, 1), totalPages.value);
+}
+
+function pageNumbers() {
+  const pages: number[] = [];
+  const first = Math.max(1, page.value - 2);
+  const last = Math.min(totalPages.value, page.value + 2);
+  for (let current = first; current <= last; current++) pages.push(current);
+  return pages;
+}
+
+async function openDetail(id: string) {
+  selectedOrder.value = await $authFetch(`/api/admin/orders/${id}`);
+  isDetailOpen.value = true;
+}
+
+async function updateStatus(id: string, nextStatus: string) {
   try {
-    await $authFetch(`/api/admin/orders/${id}/status`, { method: 'PUT', body: { status } })
-    toast.add({ title: 'อัปเดตสถานะแล้ว', color: 'success', icon: 'i-lucide-check' })
-    await refresh()
-    if (selectedOrder.value?.id === id) selectedOrder.value.status = status
+    await $authFetch(`/api/admin/orders/${id}/status`, { method: "PUT", body: { status: nextStatus } });
+    toast.add({ title: "อัปเดตสถานะแล้ว", description: statusLabel(nextStatus), color: "success", icon: "i-lucide-check" });
+    await refresh();
+    if (selectedOrder.value?.id === id) selectedOrder.value.status = nextStatus;
   } catch (err: any) {
-    toast.add({ title: 'อัปเดตไม่สำเร็จ', description: err.data?.statusMessage || err.message, color: 'error', icon: 'i-lucide-alert-circle' })
+    toast.add({
+      title: "อัปเดตสถานะไม่สำเร็จ",
+      description: err.data?.statusMessage || err.message,
+      color: "error",
+      icon: "i-lucide-alert-circle",
+    });
   }
 }
 
 async function verifyPayment(id: string) {
   try {
-    const res = await $authFetch<any>(`/api/admin/orders/${id}/verify-payment`, { method: 'POST' })
+    const res = await $authFetch<any>(`/api/admin/orders/${id}/verify-payment`, { method: "POST" });
     toast.add({
-      title: res.paymentStatus === 'success' ? 'ยืนยันการชำระเงินแล้ว' : 'ตรวจสอบกับ Omise แล้ว',
-      description: `Charge status: ${res.chargeStatus || '-'}`,
-      color: res.paymentStatus === 'success' ? 'success' : 'neutral',
-      icon: 'i-lucide-shield-check'
-    })
-    await refresh()
+      title: res.paymentStatus === "success" ? "ยืนยันการชำระเงินแล้ว" : "ตรวจสอบกับ Omise แล้ว",
+      description: `สถานะจาก Omise: ${res.chargeStatus || "-"}`,
+      color: res.paymentStatus === "success" ? "success" : "neutral",
+      icon: "i-lucide-shield-check",
+    });
+    await refresh();
     if (selectedOrder.value?.id === id) {
-      selectedOrder.value = await $authFetch(`/api/admin/orders/${id}`)
+      selectedOrder.value = await $authFetch(`/api/admin/orders/${id}`);
     }
   } catch (err: any) {
-    toast.add({ title: 'ตรวจสอบ payment ไม่สำเร็จ', description: err.data?.statusMessage || err.message, color: 'error', icon: 'i-lucide-alert-circle' })
+    toast.add({
+      title: "ตรวจสอบ payment ไม่สำเร็จ",
+      description: err.data?.statusMessage || err.message,
+      color: "error",
+      icon: "i-lucide-alert-circle",
+    });
   }
 }
+
+async function resendOrderEmail(id: string) {
+  isSendingEmail.value = true;
+  try {
+    const res = await $authFetch<any>(`/api/admin/orders/${id}/send-email`, { method: "POST" });
+    toast.add({
+      title: res.sent ? "ส่งอีเมลแล้ว" : "ยังไม่ได้ส่งอีเมล",
+      description: res.reason || "ส่งอีเมลอัปเดตสถานะให้ลูกค้าแล้ว",
+      color: res.sent ? "success" : "warning",
+      icon: res.sent ? "i-lucide-mail-check" : "i-lucide-mail-warning",
+    });
+    selectedOrder.value = await $authFetch(`/api/admin/orders/${id}`);
+  } catch (err: any) {
+    toast.add({
+      title: "ส่งอีเมลไม่สำเร็จ",
+      description: err.data?.statusMessage || err.message,
+      color: "error",
+      icon: "i-lucide-alert-circle",
+    });
+  } finally {
+    isSendingEmail.value = false;
+  }
+}
+
+const openedQueryOrder = ref("");
+
+watch(
+  () => route.query.id,
+  (id) => {
+    if (typeof id === "string" && id && id !== openedQueryOrder.value) {
+      openedQueryOrder.value = id;
+      openDetail(id);
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar title="Orders">
+      <UDashboardNavbar title="คำสั่งซื้อ">
         <template #leading>
           <UDashboardSidebarCollapse />
+        </template>
+        <template #right>
+          <UButton icon="i-lucide-refresh-cw" label="รีเฟรช" color="neutral" variant="soft" :loading="loading" @click="refresh()" />
         </template>
       </UDashboardNavbar>
     </template>
 
     <template #body>
       <div class="p-6 space-y-5">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_1fr_auto]">
           <USelect v-model="selectedStatus" :items="statusItems" icon="i-lucide-list-filter" />
           <USelect v-model="selectedPaymentMethod" :items="paymentItems" icon="i-lucide-credit-card" />
           <UInput v-model="selectedDate" type="date" icon="i-lucide-calendar" />
+          <USelect v-model="pageSize" :items="pageSizeItems" icon="i-lucide-rows-3" class="lg:w-44" />
         </div>
 
-        <UTable :data="orders || []" :columns="columns" :loading="loading">
-          <template #payment_status-cell="{ row }">
-            <UBadge :label="row.original.payment_status" :color="row.original.payment_status === 'success' ? 'success' : row.original.payment_status === 'failed' ? 'error' : 'warning'" variant="subtle" />
-          </template>
-          <template #status-cell="{ row }">
-            <USelect
-              :model-value="row.original.status"
-              :items="statusItems.filter(item => item.value !== 'all')"
-              size="sm"
-              class="w-36"
-              @update:model-value="updateStatus(row.original.id, String($event))"
-            />
-          </template>
-          <template #total-cell="{ row }">
-            <span class="font-bold">{{ formatPrice(row.original.total) }}</span>
-          </template>
-          <template #created_at-cell="{ row }">
-            <span class="text-sm text-muted">{{ new Date(row.original.created_at).toLocaleString('th-TH') }}</span>
-          </template>
-          <template #actions-cell="{ row }">
-            <UButton icon="i-lucide-eye" size="xs" color="neutral" variant="ghost" @click="openDetail(row.original.id)" />
-          </template>
-        </UTable>
+        <div class="rounded-lg border border-default bg-default">
+          <UTable :data="paginatedOrders" :columns="columns" :loading="loading">
+            <template #payment_method-cell="{ row }">
+              <span class="text-sm">{{ paymentMethodLabel(row.original.payment_method) }}</span>
+            </template>
+
+            <template #payment_status-cell="{ row }">
+              <UBadge
+                :label="paymentStatusLabel(row.original.payment_status)"
+                :color="paymentStatusColor(row.original.payment_status)"
+                variant="subtle"
+              />
+            </template>
+
+            <template #status-cell="{ row }">
+              <div class="flex items-center gap-2">
+                <UBadge :label="statusLabel(row.original.status)" :color="statusColor(row.original.status)" variant="subtle" />
+                <USelect
+                  :model-value="row.original.status"
+                  :items="editableStatusItems"
+                  size="sm"
+                  class="w-44"
+                  @update:model-value="updateStatus(row.original.id, String($event))"
+                />
+              </div>
+            </template>
+
+            <template #total-cell="{ row }">
+              <span class="font-bold">{{ formatPrice(row.original.total) }}</span>
+            </template>
+
+            <template #created_at-cell="{ row }">
+              <span class="text-sm text-muted">{{ formatDate(row.original.created_at) }}</span>
+            </template>
+
+            <template #actions-cell="{ row }">
+              <UButton icon="i-lucide-eye" label="รายละเอียด" size="xs" color="neutral" variant="soft" @click="openDetail(row.original.id)" />
+            </template>
+
+            <template #empty>
+              <div class="py-10 text-center">
+                <UIcon name="i-lucide-inbox" class="mx-auto mb-2 size-8 text-muted" />
+                <p class="font-medium">ไม่พบคำสั่งซื้อ</p>
+                <p class="text-sm text-muted">ลองเปลี่ยน filter หรือเลือกวันที่อื่น</p>
+              </div>
+            </template>
+          </UTable>
+
+          <div class="flex flex-col gap-3 border-t border-default px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-sm text-muted">
+              แสดง {{ startItem }}-{{ endItem }} จาก {{ totalOrders }} คำสั่งซื้อ
+            </p>
+            <div class="flex flex-wrap items-center gap-2">
+              <UButton icon="i-lucide-chevron-left" label="ก่อนหน้า" color="neutral" variant="soft" size="sm" :disabled="page <= 1" @click="goToPage(page - 1)" />
+              <UButton
+                v-for="pageNumber in pageNumbers()"
+                :key="pageNumber"
+                :label="String(pageNumber)"
+                :color="pageNumber === page ? 'primary' : 'neutral'"
+                :variant="pageNumber === page ? 'solid' : 'soft'"
+                size="sm"
+                @click="goToPage(pageNumber)"
+              />
+              <UButton icon="i-lucide-chevron-right" label="ถัดไป" color="neutral" variant="soft" size="sm" :disabled="page >= totalPages" @click="goToPage(page + 1)" />
+            </div>
+          </div>
+        </div>
       </div>
     </template>
   </UDashboardPanel>
@@ -136,54 +307,87 @@ async function verifyPayment(id: string) {
   <UModal v-model:open="isDetailOpen" title="รายละเอียดคำสั่งซื้อ" :ui="{ content: 'max-w-3xl' }">
     <template #body>
       <div v-if="selectedOrder" class="space-y-5">
-        <div class="grid sm:grid-cols-2 gap-4">
+        <div class="grid gap-4 sm:grid-cols-2">
           <div class="rounded-lg bg-elevated p-4">
-            <p class="text-xs text-muted">Order</p>
+            <p class="text-xs text-muted">เลขคำสั่งซื้อ</p>
             <p class="font-black">{{ selectedOrder.id }}</p>
+            <p class="mt-2 text-sm text-muted">{{ formatDate(selectedOrder.created_at) }}</p>
           </div>
+
           <div class="rounded-lg bg-elevated p-4">
-            <p class="text-xs text-muted">Status</p>
+            <p class="text-xs text-muted">สถานะคำสั่งซื้อ</p>
             <USelect
               v-model="selectedOrder.status"
-              :items="statusItems.filter(item => item.value !== 'all')"
+              :items="editableStatusItems"
               class="mt-2"
               @update:model-value="updateStatus(selectedOrder.id, String($event))"
             />
           </div>
         </div>
 
-        <div v-if="selectedOrder.payment_status === 'pending' && selectedOrder.omise_charge_id" class="rounded-lg border border-warning/30 bg-warning/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div v-if="selectedOrder.payment_status === 'success'" class="flex flex-col justify-between gap-3 rounded-lg border border-success/30 bg-success/10 p-4 sm:flex-row sm:items-center">
           <div>
-            <p class="font-bold">Payment ยัง pending</p>
-            <p class="text-sm text-muted">ตรวจสอบสถานะจริงจาก Omise ก่อน mark paid</p>
+            <p class="font-bold">ชำระเงินสำเร็จแล้ว</p>
+            <p class="text-sm text-muted">กดส่งอีเมลเพื่อแจ้งสถานะล่าสุดให้ลูกค้าอีกครั้ง</p>
+          </div>
+          <UButton
+            icon="i-lucide-mail-check"
+            label="ส่งอีเมลให้ลูกค้า"
+            color="success"
+            variant="soft"
+            :loading="isSendingEmail"
+            @click="resendOrderEmail(selectedOrder.id)"
+          />
+        </div>
+
+        <div v-if="selectedOrder.payment_status === 'pending' && selectedOrder.omise_charge_id" class="flex flex-col justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4 sm:flex-row sm:items-center">
+          <div>
+            <p class="font-bold">ยังรอชำระเงิน</p>
+            <p class="text-sm text-muted">ตรวจสอบสถานะจริงจาก Omise ก่อนยืนยันการชำระเงิน</p>
           </div>
           <UButton icon="i-lucide-shield-check" label="Verify with Omise" color="warning" variant="soft" @click="verifyPayment(selectedOrder.id)" />
         </div>
 
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="rounded-lg border border-default p-4">
+            <h3 class="mb-2 font-bold">ลูกค้า</h3>
+            <p>{{ selectedOrder.first_name }} {{ selectedOrder.last_name }}</p>
+            <p class="text-sm text-muted">{{ selectedOrder.email }}</p>
+            <p class="text-sm text-muted">{{ selectedOrder.phone }}</p>
+          </div>
+
+          <div class="rounded-lg border border-default p-4">
+            <h3 class="mb-2 font-bold">สถานะ</h3>
+            <div class="flex flex-wrap gap-2">
+              <UBadge :label="paymentStatusLabel(selectedOrder.payment_status)" :color="paymentStatusColor(selectedOrder.payment_status)" variant="subtle" />
+              <UBadge :label="statusLabel(selectedOrder.status)" :color="statusColor(selectedOrder.status)" variant="subtle" />
+              <UBadge :label="paymentMethodLabel(selectedOrder.payment_method)" color="neutral" variant="subtle" />
+            </div>
+          </div>
+        </div>
+
         <div class="rounded-lg border border-default p-4">
-          <h3 class="font-bold mb-2">ลูกค้า</h3>
-          <p>{{ selectedOrder.first_name }} {{ selectedOrder.last_name }}</p>
-          <p class="text-sm text-muted">{{ selectedOrder.email }} · {{ selectedOrder.phone }}</p>
-          <p class="text-sm text-muted mt-2">{{ selectedOrder.address }}</p>
+          <h3 class="mb-2 font-bold">ที่อยู่จัดส่ง</h3>
+          <p class="text-sm text-muted">{{ selectedOrder.address }}</p>
           <p v-if="selectedOrder.address_line2" class="text-sm text-muted">{{ selectedOrder.address_line2 }}</p>
           <p class="text-sm text-muted">
-            {{ selectedOrder.subdistrict || '' }}
+            {{ selectedOrder.subdistrict || "" }}
             {{ selectedOrder.district }}
             {{ selectedOrder.province }}
             {{ selectedOrder.postal_code }}
           </p>
-          <p v-if="selectedOrder.delivery_note" class="text-sm text-muted mt-2">หมายเหตุจัดส่ง: {{ selectedOrder.delivery_note }}</p>
+          <p v-if="selectedOrder.delivery_note" class="mt-2 text-sm text-muted">หมายเหตุจัดส่ง: {{ selectedOrder.delivery_note }}</p>
         </div>
 
-        <div class="rounded-lg border border-default divide-y divide-default">
-          <div v-for="item in selectedOrder.items" :key="item.product_id" class="p-4 flex justify-between gap-3">
+        <div class="divide-y divide-default rounded-lg border border-default">
+          <div v-for="item in selectedOrder.items" :key="item.product_id" class="flex justify-between gap-3 p-4">
             <span>{{ item.product_name }} x {{ item.quantity }}</span>
             <span class="font-bold">{{ formatPrice(item.subtotal) }}</span>
           </div>
         </div>
 
         <div class="flex justify-between text-lg font-black">
-          <span>Total</span>
+          <span>ยอดรวม</span>
           <span>{{ formatPrice(selectedOrder.total) }}</span>
         </div>
       </div>

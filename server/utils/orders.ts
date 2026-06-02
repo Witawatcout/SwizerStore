@@ -1,6 +1,7 @@
 import type { PoolConnection } from "mysql2/promise";
 import { getPool } from "~~/server/utils/db";
 import { randomBytes } from "node:crypto";
+import { sendOrderPaidEmails } from "~~/server/utils/orderEmails";
 
 export async function generateOrderId(conn: PoolConnection) {
   const now = new Date();
@@ -35,12 +36,13 @@ export async function expirePromptPayReservations(conn?: PoolConnection) {
 export async function markOrderPaymentSuccess(orderId: string, chargeId?: string | null) {
   const pool = getPool();
   const conn = await pool.getConnection();
+  let shouldSendEmail = false;
 
   try {
     await conn.beginTransaction();
 
     const [orders] = await conn.execute<any[]>(
-      "SELECT payment_status, status FROM orders WHERE id = ? FOR UPDATE",
+      "SELECT payment_status, status, confirmation_email_sent_at FROM orders WHERE id = ? FOR UPDATE",
       [orderId]
     );
 
@@ -66,9 +68,21 @@ export async function markOrderPaymentSuccess(orderId: string, chargeId?: string
          WHERE oi.order_id = ?`,
         [orderId]
       );
+
+      shouldSendEmail = true;
+    } else if (!orders[0].confirmation_email_sent_at) {
+      shouldSendEmail = true;
     }
 
     await conn.commit();
+
+    if (shouldSendEmail) {
+      try {
+        await sendOrderPaidEmails(orderId);
+      } catch (error) {
+        console.warn(`Failed to send paid order email for ${orderId}`, error);
+      }
+    }
   } catch (error) {
     await conn.rollback();
     throw error;
