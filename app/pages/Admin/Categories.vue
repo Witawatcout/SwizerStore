@@ -15,11 +15,14 @@ const loading = computed(() => categoriesStatus.value === 'pending' || categorie
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
+        <template #right>
+          <UButton icon="i-lucide-refresh-cw" label="รีเฟรช" color="neutral" variant="soft" :loading="loading" @click="refreshCategories()" />
+        </template>
       </UDashboardNavbar>
     </template>
 
     <template #body>
-      <div class="p-6">
+      <div class="p-6 space-y-5">
         <AdminCategoryTable
           :data="categoriesData || []"
           :loading="loading"

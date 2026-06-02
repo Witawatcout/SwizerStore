@@ -20,6 +20,10 @@ const form = reactive({
   id: '', name: '', slug: '', parentId: null as string | null
 })
 
+const totalCategories = computed(() => (props.data || []).length)
+const mainCategories = computed(() => (props.data || []).filter((category: any) => !category.parent_id).length)
+const childCategories = computed(() => Math.max(0, totalCategories.value - mainCategories.value))
+
 const columns: TableColumn<any>[] = [
   { accessorKey: 'id', header: 'ID' },
   { accessorKey: 'name', header: 'ชื่อหมวดหมู่' },
@@ -85,29 +89,56 @@ function getParentName(parentId: string | null) {
 </script>
 
 <template>
-  <div>
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
+  <div class="space-y-5">
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div class="rounded-lg border border-default bg-default p-4 shadow-sm">
+        <p class="text-sm font-medium text-muted">หมวดหมู่ทั้งหมด</p>
+        <p class="mt-2 text-3xl font-black text-default">{{ totalCategories }}</p>
+      </div>
+      <div class="rounded-lg border border-primary/30 bg-primary/10 p-4 shadow-sm">
+        <p class="text-sm font-medium text-primary">หมวดหมู่หลัก</p>
+        <p class="mt-2 text-3xl font-black text-default">{{ mainCategories }}</p>
+      </div>
+      <div class="rounded-lg border border-info/30 bg-info/10 p-4 shadow-sm">
+        <p class="text-sm font-medium text-info">หมวดหมู่ย่อย</p>
+        <p class="mt-2 text-3xl font-black text-default">{{ childCategories }}</p>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3 rounded-lg border border-default bg-default p-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h2 class="text-xl font-bold">จัดการหมวดหมู่</h2>
-        <p class="text-sm text-muted mt-1">เพิ่ม แก้ไข และลบหมวดหมู่สินค้า</p>
+        <h2 class="text-base font-bold">รายการหมวดหมู่</h2>
+        <p class="text-sm text-muted">ดูและจัดการโครงสร้างหมวดหมู่สินค้า</p>
       </div>
       <UButton icon="i-lucide-plus" label="เพิ่มหมวดหมู่" color="primary" @click="openNew" />
     </div>
 
-    <!-- Table -->
-    <UTable :data="data" :columns="columns" :loading="loading">
-      <template #parent_id-cell="{ row }">
-        <UBadge v-if="row.original.parent_id" :label="getParentName(row.original.parent_id)" variant="subtle" color="neutral" size="sm" />
-        <UBadge v-else label="Main Category" variant="subtle" color="primary" size="sm" />
-      </template>
-      <template #actions-cell="{ row }">
-        <div class="flex gap-1 justify-end">
-          <UButton icon="i-lucide-pencil" color="neutral" variant="ghost" size="xs" @click="openEdit(row.original)" />
-          <UButton icon="i-lucide-trash-2" color="error" variant="ghost" size="xs" @click="handleDelete(row.original.id)" />
-        </div>
-      </template>
-    </UTable>
+    <div class="rounded-lg border border-default bg-default">
+      <UTable :data="data" :columns="columns" :loading="loading">
+        <template #parent_id-cell="{ row }">
+          <UBadge v-if="row.original.parent_id" :label="getParentName(row.original.parent_id)" variant="subtle" color="neutral" size="sm" />
+          <UBadge v-else label="หมวดหมู่หลัก" variant="subtle" color="primary" size="sm" />
+        </template>
+        <template #actions-cell="{ row }">
+          <div class="flex justify-end gap-2">
+            <UButton icon="i-lucide-pencil" label="แก้ไข" color="neutral" variant="soft" size="xs" @click="openEdit(row.original)" />
+            <UButton icon="i-lucide-trash-2" color="error" variant="ghost" size="xs" @click="handleDelete(row.original.id)" />
+          </div>
+        </template>
+        <template #empty>
+          <div class="py-10 text-center">
+            <UIcon name="i-lucide-folder-open" class="mx-auto mb-2 size-8 text-muted" />
+            <p class="font-medium">ยังไม่มีหมวดหมู่</p>
+            <p class="text-sm text-muted">เพิ่มหมวดหมู่เพื่อจัดกลุ่มสินค้าในร้าน</p>
+          </div>
+        </template>
+      </UTable>
+
+      <div class="flex flex-col gap-2 border-t border-default px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm text-muted">แสดง {{ totalCategories }} หมวดหมู่</p>
+        <p class="text-sm text-muted">หมวดหมู่หลัก {{ mainCategories }} / หมวดหมู่ย่อย {{ childCategories }}</p>
+      </div>
+    </div>
 
     <!-- Modal -->
     <UModal v-model:open="isModalOpen" :title="isEditing ? 'แก้ไขหมวดหมู่' : 'เพิ่มหมวดหมู่ใหม่'">

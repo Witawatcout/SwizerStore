@@ -16,11 +16,14 @@ const loading = computed(() => productsStatus.value === 'pending' || productsSta
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
+        <template #right>
+          <UButton icon="i-lucide-refresh-cw" label="รีเฟรช" color="neutral" variant="soft" :loading="loading" @click="refreshProducts()" />
+        </template>
       </UDashboardNavbar>
     </template>
 
     <template #body>
-      <div class="p-6">
+      <div class="p-6 space-y-5">
         <AdminProductTable
           :data="productsData || []"
           :categories="categoriesData || []"

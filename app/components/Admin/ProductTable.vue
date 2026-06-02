@@ -30,7 +30,23 @@ const form = reactive({
 })
 
 // Temp inputs for adding items
+const newTag = ref('')
 const newGalleryUrl = ref('')
+
+const benefitIconOptions = [
+  { icon: 'i-lucide-heart-pulse', label: 'หัวใจ' },
+  { icon: 'i-lucide-leaf', label: 'ธรรมชาติ' },
+  { icon: 'i-lucide-shield-check', label: 'ภูมิคุ้มกัน' },
+  { icon: 'i-lucide-sparkles', label: 'ผิวพรรณ' },
+  { icon: 'i-lucide-brain', label: 'สมอง' },
+  { icon: 'i-lucide-dumbbell', label: 'พลังงาน' },
+  { icon: 'i-lucide-flame', label: 'เผาผลาญ' },
+  { icon: 'i-lucide-droplets', label: 'ความชุ่มชื้น' },
+  { icon: 'i-lucide-wheat', label: 'ไฟเบอร์' },
+  { icon: 'i-lucide-bone', label: 'กระดูก' },
+  { icon: 'i-lucide-smile', label: 'อารมณ์' },
+  { icon: 'i-lucide-sun', label: 'วิตามิน' }
+]
 
 // File input refs
 const mainImageInput = ref<HTMLInputElement>()
@@ -121,6 +137,11 @@ const filteredData = computed(() => {
   })
 })
 
+const totalProducts = computed(() => (props.data || []).length)
+const activeProducts = computed(() => (props.data || []).filter((product: any) => Number(product.is_active ?? 1) === 1).length)
+const inactiveProducts = computed(() => Math.max(0, totalProducts.value - activeProducts.value))
+const outOfStockProducts = computed(() => (props.data || []).filter((product: any) => Number(product.stock || 0) <= 0).length)
+
 const columns: TableColumn<any>[] = [
   { accessorKey: 'image', header: 'รูปภาพ' },
   { accessorKey: 'name', header: 'ชื่อสินค้า' },
@@ -139,6 +160,7 @@ function resetForm() {
     price: 0, stock: 0, is_active: true, unit: '', image: '', badge: '',
     tags: [], benefits: [], rituals: [], gallery: []
   })
+  newTag.value = ''
   newGalleryUrl.value = ''
   removeMainImagePending()
   pendingGalleryFiles.value.forEach(p => URL.revokeObjectURL(p.preview))
@@ -173,12 +195,31 @@ function openEdit(product: any) {
   isModalOpen.value = true
 }
 
+// === Tags ===
+function addTag() {
+  const value = newTag.value.trim()
+  if (!value) return
+  const exists = form.tags.some(tag => tag.toLowerCase() === value.toLowerCase())
+  if (exists) {
+    toast.add({ title: 'Tag นี้ถูกเพิ่มแล้ว', color: 'warning', icon: 'i-lucide-tag' })
+    return
+  }
+  form.tags.push(value)
+  newTag.value = ''
+}
+function removeTag(index: number) {
+  form.tags.splice(index, 1)
+}
+
 // === Benefits ===
 function addBenefit() {
-  form.benefits.push({ icon: 'mynaui:heart', title: '', text: '' })
+  form.benefits.push({ icon: benefitIconOptions[0].icon, title: '', text: '' })
 }
 function removeBenefit(index: number) {
   form.benefits.splice(index, 1)
+}
+function selectBenefitIcon(index: number, icon: string) {
+  form.benefits[index].icon = icon
 }
 
 // === Rituals ===
@@ -253,64 +294,91 @@ async function handleDelete(id: string) {
 </script>
 
 <template>
-  <div>
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
-      <div>
-        <h2 class="text-xl font-bold">จัดการสินค้า</h2>
-        <p class="text-sm text-muted mt-1">เพิ่ม แก้ไข และลบสินค้าในระบบ</p>
+  <div class="space-y-5">
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div class="rounded-lg border border-default bg-default p-4 shadow-sm">
+        <p class="text-sm font-medium text-muted">สินค้าทั้งหมด</p>
+        <p class="mt-2 text-3xl font-black text-default">{{ totalProducts }}</p>
+      </div>
+      <div class="rounded-lg border border-success/30 bg-success/10 p-4 shadow-sm">
+        <p class="text-sm font-medium text-success">เปิดขาย</p>
+        <p class="mt-2 text-3xl font-black text-default">{{ activeProducts }}</p>
+      </div>
+      <div class="rounded-lg border border-warning/30 bg-warning/10 p-4 shadow-sm">
+        <p class="text-sm font-medium text-warning">ปิดใช้งาน</p>
+        <p class="mt-2 text-3xl font-black text-default">{{ inactiveProducts }}</p>
+      </div>
+      <div class="rounded-lg border border-error/30 bg-error/10 p-4 shadow-sm">
+        <p class="text-sm font-medium text-error">สินค้าหมด</p>
+        <p class="mt-2 text-3xl font-black text-default">{{ outOfStockProducts }}</p>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3 rounded-lg border border-default bg-default p-4 lg:flex-row lg:items-center lg:justify-between">
+      <div class="grid flex-1 grid-cols-1 gap-3 md:grid-cols-2">
+        <USelect
+          v-model="selectedCategory"
+          :items="[{ label: 'ทุกหมวดหมู่', value: 'all' }, ...(categories || []).map((c: any) => ({ label: c.name, value: c.id }))]"
+          icon="i-lucide-folder"
+          class="w-full"
+        />
+        <USelect
+          v-model="selectedStatus"
+          :items="[
+            { label: 'ทุกสถานะ', value: 'all' },
+            { label: 'เปิดขาย', value: 'active' },
+            { label: 'ปิดใช้งาน', value: 'inactive' }
+          ]"
+          icon="i-lucide-toggle-left"
+          class="w-full"
+        />
       </div>
       <UButton icon="i-lucide-plus" label="เพิ่มสินค้า" color="primary" @click="openNew" />
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-      <USelect
-        v-model="selectedCategory"
-        :items="[{ label: 'ทุกหมวดหมู่', value: 'all' }, ...(categories || []).map((c: any) => ({ label: c.name, value: c.id }))]"
-        icon="i-lucide-folder"
-        class="w-full"
-      />
-      <USelect
-        v-model="selectedStatus"
-        :items="[
-          { label: 'ทุกสถานะ', value: 'all' },
-          { label: 'Active', value: 'active' },
-          { label: 'Inactive', value: 'inactive' }
-        ]"
-        icon="i-lucide-toggle-left"
-        class="w-full"
-      />
+    <div class="rounded-lg border border-default bg-default">
+      <UTable :data="filteredData" :columns="columns" :loading="loading">
+        <template #image-cell="{ row }">
+          <img v-if="row.original.image" :src="row.original.image" class="h-10 w-10 rounded-lg object-cover" />
+          <div v-else class="h-10 w-10 rounded-lg bg-elevated flex items-center justify-center">
+            <UIcon name="i-lucide-image" class="text-muted" />
+          </div>
+        </template>
+        <template #price-cell="{ row }">
+          <span class="font-medium">{{ Number(row.original.price).toLocaleString() }} ฿</span>
+        </template>
+        <template #stock-cell="{ row }">
+          <UBadge :label="String(row.original.stock || 0)" :color="Number(row.original.stock || 0) > 0 ? 'neutral' : 'warning'" variant="subtle" size="sm" />
+        </template>
+        <template #is_active-cell="{ row }">
+          <UBadge :label="Number(row.original.is_active ?? 1) === 1 ? 'เปิดขาย' : 'ปิดใช้งาน'" :color="Number(row.original.is_active ?? 1) === 1 ? 'success' : 'neutral'" variant="subtle" size="sm" />
+        </template>
+        <template #badge-cell="{ row }">
+          <UBadge v-if="row.original.badge" :label="row.original.badge" variant="subtle" size="sm" />
+          <span v-else class="text-muted text-sm">—</span>
+        </template>
+
+        <template #actions-cell="{ row }">
+          <div class="flex justify-end gap-2">
+            <UButton icon="i-lucide-pencil" label="แก้ไข" size="xs" color="neutral" variant="soft" @click="openEdit(row.original)" />
+            <UButton icon="i-lucide-trash-2" size="xs" color="error" variant="ghost" @click="handleDelete(row.original.id)" />
+          </div>
+        </template>
+
+        <template #empty>
+          <div class="py-10 text-center">
+            <UIcon name="i-lucide-package-open" class="mx-auto mb-2 size-8 text-muted" />
+            <p class="font-medium">ไม่พบสินค้า</p>
+            <p class="text-sm text-muted">ลองเปลี่ยนหมวดหมู่หรือสถานะสินค้า</p>
+          </div>
+        </template>
+      </UTable>
+
+      <div class="flex flex-col gap-2 border-t border-default px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm text-muted">แสดง {{ filteredData.length }} จาก {{ totalProducts }} สินค้า</p>
+        <p class="text-sm text-muted">จัดการสถานะและข้อมูลสินค้าจากตารางนี้</p>
+      </div>
     </div>
-
-    <!-- Table -->
-    <UTable :data="filteredData" :columns="columns" :loading="loading">
-      <template #image-cell="{ row }">
-        <img v-if="row.original.image" :src="row.original.image" class="h-10 w-10 rounded-lg object-cover" />
-        <div v-else class="h-10 w-10 rounded-lg bg-elevated flex items-center justify-center">
-          <UIcon name="i-lucide-image" class="text-muted" />
-        </div>
-      </template>
-      <template #price-cell="{ row }">
-        <span class="font-medium">{{ Number(row.original.price).toLocaleString() }} ฿</span>
-      </template>
-      <template #stock-cell="{ row }">
-        <UBadge :label="String(row.original.stock || 0)" :color="Number(row.original.stock || 0) > 0 ? 'neutral' : 'warning'" variant="subtle" size="sm" />
-      </template>
-      <template #is_active-cell="{ row }">
-        <UBadge :label="Number(row.original.is_active ?? 1) === 1 ? 'Active' : 'Inactive'" :color="Number(row.original.is_active ?? 1) === 1 ? 'success' : 'neutral'" variant="subtle" size="sm" />
-      </template>
-      <template #badge-cell="{ row }">
-        <UBadge v-if="row.original.badge" :label="row.original.badge" variant="subtle" size="sm" />
-        <span v-else class="text-muted text-sm">—</span>
-      </template>
-
-      <template #actions-cell="{ row }">
-        <div class="flex gap-2">
-          <UButton icon="i-lucide-pencil" size="xs" color="neutral" variant="ghost" @click="openEdit(row.original)" />
-          <UButton icon="i-lucide-trash-2" size="xs" color="error" variant="ghost" @click="handleDelete(row.original.id)" />
-        </div>
-      </template>
-    </UTable>
 
     <!-- ═══════════ Modal เพิ่ม/แก้ไขสินค้า ═══════════ -->
     <UModal
@@ -424,8 +492,45 @@ async function handleDelete(id: string) {
               <p class="text-sm text-muted mt-1">คำค้นหาและแท็กที่เกี่ยวข้อง เพื่อเพิ่มประสิทธิภาพการค้นหา</p>
             </div>
             <div>
-              <UFormField label="ป้ายกำกับสินค้า" hint="กด Enter เพื่อเพิ่ม" class="w-full">
-                <UInputTags v-model="form.tags" placeholder="พิมพ์แล้วกด Enter เช่น Non-GMO, Organic" class="w-full" />
+              <UFormField label="ป้ายกำกับสินค้า" hint="พิมพ์ tag แล้วกดปุ่มเพิ่ม" class="w-full">
+                <div class="space-y-3">
+                  <div class="flex gap-2">
+                    <UInput
+                      v-model="newTag"
+                      placeholder="เช่น Non-GMO, Organic"
+                      icon="i-lucide-tag"
+                      autocomplete="off"
+                      class="flex-1"
+                      @keydown.enter.prevent
+                    />
+                    <UButton
+                      type="button"
+                      icon="i-lucide-plus"
+                      label="เพิ่ม"
+                      color="neutral"
+                      variant="soft"
+                      @click="addTag"
+                    />
+                  </div>
+                  <div v-if="form.tags.length" class="flex flex-wrap gap-2">
+                    <span
+                      v-for="(tag, index) in form.tags"
+                      :key="`${tag}-${index}`"
+                      class="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
+                    >
+                      <UIcon name="i-lucide-tag" class="size-3" />
+                      {{ tag }}
+                      <button
+                        type="button"
+                        class="ml-1 rounded-full p-0.5 text-muted hover:bg-white hover:text-error"
+                        @click="removeTag(index)"
+                      >
+                        <UIcon name="i-lucide-x" class="size-3" />
+                      </button>
+                    </span>
+                  </div>
+                  <p v-else class="text-xs text-muted">ยังไม่มี tag กรอกข้อความแล้วกดปุ่มเพิ่ม</p>
+                </div>
               </UFormField>
             </div>
           </div>
@@ -455,11 +560,29 @@ async function handleDelete(id: string) {
                 />
                 <div class="grid grid-cols-2 gap-4 pr-6">
                   <UFormField label="Icon" class="w-full">
-                    <UInput v-model="benefit.icon" placeholder="mynaui:heart" icon="i-lucide-smile" autocomplete="off" class="w-full" />
+                    <UInput v-model="benefit.icon" placeholder="เลือก icon ด้านล่าง" icon="i-lucide-smile" autocomplete="off" class="w-full" />
                   </UFormField>
                   <UFormField label="Title" class="w-full">
                     <UInput v-model="benefit.title" placeholder="Heart Health" autocomplete="off" class="w-full" />
                   </UFormField>
+                </div>
+                <div class="rounded-lg border border-default/60 bg-default/30 p-3">
+                  <p class="mb-2 text-xs font-medium text-muted">เลือก icon สำหรับ Benefit นี้</p>
+                  <div class="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                    <button
+                      v-for="option in benefitIconOptions"
+                      :key="option.icon"
+                      type="button"
+                      class="flex min-h-16 flex-col items-center justify-center gap-1 rounded-lg border px-2 py-2 text-center transition"
+                      :class="benefit.icon === option.icon
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-default bg-white hover:border-primary/60 hover:bg-primary/5'"
+                      @click="selectBenefitIcon(i, option.icon)"
+                    >
+                      <UIcon :name="option.icon" class="size-5" />
+                      <span class="text-[11px] leading-tight">{{ option.label }}</span>
+                    </button>
+                  </div>
                 </div>
                 <UFormField label="รายละเอียด" class="w-full">
                   <UInput v-model="benefit.text" placeholder="คำอธิบายสั้นๆ" autocomplete="off" class="w-full" />

@@ -79,6 +79,10 @@ function removeMainImagePending() {
 
 const displayMainImage = computed(() => pendingMainImagePreview.value || form.image)
 
+const totalNews = computed(() => (props.data || []).length)
+const withImageNews = computed(() => (props.data || []).filter((news: any) => Boolean(news.image)).length)
+const taggedNews = computed(() => (props.data || []).filter((news: any) => Boolean(news.tag)).length)
+
 const columns: TableColumn<any>[] = [
   { accessorKey: 'image', header: 'รูปภาพ' },
   { accessorKey: 'title', header: 'หัวข้อ' },
@@ -159,28 +163,65 @@ async function handleDelete(id: string) {
 </script>
 
 <template>
-  <div>
-    <!-- Table Header -->
-    <div class="flex items-center justify-between mb-6">
-      <h2 class="text-xl font-bold font-headline">จัดการข่าว / บทความ</h2>
+  <div class="space-y-5">
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div class="rounded-lg border border-default bg-default p-4 shadow-sm">
+        <p class="text-sm font-medium text-muted">บทความทั้งหมด</p>
+        <p class="mt-2 text-3xl font-black text-default">{{ totalNews }}</p>
+      </div>
+      <div class="rounded-lg border border-primary/30 bg-primary/10 p-4 shadow-sm">
+        <p class="text-sm font-medium text-primary">มีรูปภาพปก</p>
+        <p class="mt-2 text-3xl font-black text-default">{{ withImageNews }}</p>
+      </div>
+      <div class="rounded-lg border border-info/30 bg-info/10 p-4 shadow-sm">
+        <p class="text-sm font-medium text-info">มี Tag</p>
+        <p class="mt-2 text-3xl font-black text-default">{{ taggedNews }}</p>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3 rounded-lg border border-default bg-default p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 class="text-base font-bold">รายการข่าว / บทความ</h2>
+        <p class="text-sm text-muted">ดู แก้ไข และลบบทความที่แสดงบนเว็บไซต์</p>
+      </div>
       <UButton icon="i-lucide-plus" label="เพิ่มบทความ" color="primary" @click="openNew" />
     </div>
 
-    <!-- Data Table -->
-    <UTable :data="data" :columns="columns" :loading="loading" class="bg-white rounded-xl shadow-sm border border-default">
-      <template #image-cell="{ row }">
-        <div class="w-16 h-16 rounded-lg overflow-hidden bg-neutral-100 flex items-center justify-center">
-          <img v-if="row.original.image" :src="row.original.image" class="w-full h-full object-cover" />
-          <UIcon v-else name="i-lucide-image" class="text-neutral-400 text-2xl" />
-        </div>
-      </template>
-      <template #actions-cell="{ row }">
-        <div class="flex items-center gap-2 justify-end">
-          <UButton icon="i-lucide-edit" color="neutral" variant="ghost" size="sm" @click="openEdit(row.original)" />
-          <UButton icon="i-lucide-trash" color="error" variant="ghost" size="sm" @click="handleDelete(row.original.id)" />
-        </div>
-      </template>
-    </UTable>
+    <div class="rounded-lg border border-default bg-default">
+      <UTable :data="data" :columns="columns" :loading="loading">
+        <template #image-cell="{ row }">
+          <div class="flex h-14 w-20 items-center justify-center overflow-hidden rounded-lg bg-elevated">
+            <img v-if="row.original.image" :src="row.original.image" class="h-full w-full object-cover" />
+            <UIcon v-else name="i-lucide-image" class="text-muted text-2xl" />
+          </div>
+        </template>
+        <template #tag-cell="{ row }">
+          <UBadge v-if="row.original.tag" :label="row.original.tag" color="primary" variant="subtle" size="sm" />
+          <span v-else class="text-muted text-sm">—</span>
+        </template>
+        <template #date-cell="{ row }">
+          <span class="text-sm text-muted">{{ row.original.date || '—' }}</span>
+        </template>
+        <template #actions-cell="{ row }">
+          <div class="flex items-center justify-end gap-2">
+            <UButton icon="i-lucide-edit" label="แก้ไข" color="neutral" variant="soft" size="xs" @click="openEdit(row.original)" />
+            <UButton icon="i-lucide-trash" color="error" variant="ghost" size="xs" @click="handleDelete(row.original.id)" />
+          </div>
+        </template>
+        <template #empty>
+          <div class="py-10 text-center">
+            <UIcon name="i-lucide-newspaper" class="mx-auto mb-2 size-8 text-muted" />
+            <p class="font-medium">ยังไม่มีบทความ</p>
+            <p class="text-sm text-muted">เพิ่มบทความเพื่อแสดงข่าวสารบนเว็บไซต์</p>
+          </div>
+        </template>
+      </UTable>
+
+      <div class="flex flex-col gap-2 border-t border-default px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm text-muted">แสดง {{ totalNews }} บทความ</p>
+        <p class="text-sm text-muted">มีรูปภาพปก {{ withImageNews }} / มี Tag {{ taggedNews }}</p>
+      </div>
+    </div>
 
     <!-- Modal Form -->
     <UModal
