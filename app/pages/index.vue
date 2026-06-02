@@ -2,7 +2,7 @@
   <div class="font-body text-neutral-950 overflow-x-hidden">
 
     <!-- Hero Section -->
-    <section class="relative min-h-screen flex items-center overflow-hidden">
+    <section class="relative min-h-screen flex items-center overflow-hidden pt-8 md:pt-10 lg:pt-12">
       <div class="max-w-screen-2xl mx-auto px-8 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         
         <div class="lg:col-span-6 z-10 fade-in-up" style="animation-duration: 0.8s;">

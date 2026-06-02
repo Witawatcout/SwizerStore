@@ -145,7 +145,7 @@ useHead({
 
 /* Premium Typography for Dynamic Body */
 .editorial-content :deep(h2) {
-  font-family: 'Epilogue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 2rem;
   font-weight: 800;
   margin-top: 3.5rem;
@@ -156,7 +156,7 @@ useHead({
 }
 
 .editorial-content :deep(h3) {
-  font-family: 'Epilogue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 1.5rem;
   font-weight: 700;
   margin-top: 2.5rem;

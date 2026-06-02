@@ -6,9 +6,19 @@ import { useCartStore } from '@/store/cart'
 
 const auth = useAuthStore()
 const cart = useCartStore()
+const route = useRoute()
 
 const isLoggedIn = computed(() => Boolean(auth.token))
 const isAdmin = computed(() => auth.user?.role === 'admin')
+const isNavVisible = ref(true)
+const lastScrollY = ref(0)
+let scrollTicking = false
+
+const navShellStyle = computed(() => ({
+  transform: isNavVisible.value ? 'translate3d(0, 0, 0)' : 'translate3d(0, -100%, 0)',
+  opacity: isNavVisible.value ? '1' : '0',
+  transition: 'transform 520ms cubic-bezier(0.16, 1, 0.3, 1), opacity 320ms ease',
+}))
 
 const mainItems = computed<NavigationMenuItem[]>(() => [
   { label: 'หน้าแรก', to: '/' },
@@ -80,13 +90,55 @@ function signOut() {
   auth.logout()
   navigateTo('/')
 }
+
+function updateNavbarVisibility() {
+  const currentY = window.scrollY || 0
+  const diff = currentY - lastScrollY.value
+
+  if (currentY < 24 || diff < -8) {
+    isNavVisible.value = true
+  } else if (diff > 8 && currentY > 96) {
+    isNavVisible.value = false
+  }
+
+  lastScrollY.value = currentY
+  scrollTicking = false
+}
+
+function handleScroll() {
+  if (scrollTicking) return
+  scrollTicking = true
+  window.requestAnimationFrame(updateNavbarVisibility)
+}
+
+onMounted(() => {
+  lastScrollY.value = window.scrollY || 0
+  window.addEventListener('scroll', handleScroll, { passive: true })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
+
+watch(
+  () => route.fullPath,
+  () => {
+    isNavVisible.value = true
+    lastScrollY.value = 0
+  }
+)
 </script>
 
 <template>
+  <div
+    class="fixed inset-x-0 top-0 z-50 will-change-transform"
+    :class="isNavVisible ? 'pointer-events-auto' : 'pointer-events-none'"
+    :style="navShellStyle"
+  >
   <UHeader
     mode="slideover"
-    class="sticky top-0 z-50 border-b border-white/5 bg-neutral-950/95 shadow-xl shadow-neutral-900/30 backdrop-blur-md transition-all duration-300"
-    :toggle="{ variant: 'ghost', class: 'p-3 text-3xl text-white' }"
+    class="border-b border-white/5 bg-neutral-950/95 shadow-xl shadow-neutral-900/30 backdrop-blur-md"
+    :toggle="{ variant: 'ghost', class: 'p-3 text-3xl text-white lg:p-4 lg:text-4xl' }"
     :ui="{
       header: 'bg-neutral-950/95 backdrop-blur-md border-b border-white/5 shadow-xl shadow-neutral-900/30',
       body: 'bg-white',
@@ -94,7 +146,7 @@ function signOut() {
   >
     <template #title>
       <NuxtLink to="/" class="flex items-center gap-3" aria-label="Swizer Store">
-        <img :src="Logo" alt="Swizer Logo" class="h-12 w-auto object-contain" />
+        <img :src="Logo" alt="Swizer Logo" class="h-11 w-auto object-contain sm:h-12 lg:h-14" />
       </NuxtLink>
     </template>
 
@@ -102,36 +154,30 @@ function signOut() {
       :items="mainItems"
       class="hidden text-white/70 lg:flex"
       :ui="{
-        link: 'font-headline hover:text-primary-400 transition-colors px-5 py-2 text-base uppercase bg-transparent hover:bg-transparent aria-[current=page]:bg-transparent aria-[current=page]:text-primary-400',
+        link: 'font-headline hover:text-primary-400 transition-colors px-5 xl:px-6 py-3 text-base xl:text-lg uppercase bg-transparent hover:bg-transparent aria-[current=page]:bg-transparent aria-[current=page]:text-primary-400',
       }"
     />
 
     <template #right>
-      <div class="flex items-center gap-2 md:gap-3">
+      <div class="flex items-center gap-2 md:gap-3 lg:gap-4">
         <UTooltip v-if="isAdmin" text="Admin">
           <UButton
             to="/Admin"
             icon="i-lucide-shield-check"
             color="primary"
             variant="ghost"
-            class="hidden rounded-full text-white hover:bg-white/5 hover:text-primary-400 md:inline-flex"
+            class="hidden rounded-full text-white hover:bg-white/5 hover:text-primary-400 md:inline-flex lg:size-12"
             aria-label="Admin"
           />
-        </UTooltip>
-
-        <UTooltip text="ค้นหา">
-          <button class="hidden rounded-full p-3 text-white transition-colors hover:bg-white/5 hover:text-primary-400 md:block">
-            <Icon name="i-lucide-search" class="block text-2xl" />
-          </button>
         </UTooltip>
 
         <UTooltip text="ตะกร้าสินค้า">
           <button
             data-cart-icon
-            class="relative rounded-full p-3 text-white transition-colors hover:bg-white/5 hover:text-primary-400"
+            class="relative rounded-full p-3 text-white transition-colors hover:bg-white/5 hover:text-primary-400 lg:p-4"
             @click="cart.toggleCart()"
           >
-            <Icon name="i-lucide-shopping-cart" class="block text-2xl" />
+            <Icon name="i-lucide-shopping-cart" class="block text-2xl lg:text-3xl" />
 
             <Transition name="badge">
               <span
@@ -150,18 +196,29 @@ function signOut() {
             variant="ghost"
             class="rounded-full p-1.5 transition-colors hover:bg-white/10"
           >
-            <UAvatar :alt="auth.user?.username" size="md" class="ring-2 ring-primary-500/30" />
+            <UAvatar :alt="auth.user?.username" size="md" class="ring-2 ring-primary-500/30 lg:size-12" />
           </UButton>
         </UDropdownMenu>
 
-        <UTooltip v-else text="เข้าสู่ระบบ">
-          <button
-            class="rounded-full p-3 text-white transition-colors hover:bg-white/5 hover:text-primary-400"
-            @click="navigateTo('/login')"
-          >
-            <Icon name="i-lucide-log-in" class="block text-2xl" />
-          </button>
-        </UTooltip>
+        <div v-else class="flex items-center gap-2">
+          <UButton
+            to="/Login"
+            icon="i-lucide-log-in"
+            label="เข้าสู่ระบบ"
+            color="neutral"
+            variant="solid"
+            size="lg"
+            class="hidden min-h-12 rounded-full px-5 text-base font-black !bg-[#83c63d] !text-white shadow-lg shadow-[#83c63d]/20 transition hover:-translate-y-0.5 hover:!bg-[#72b334] md:inline-flex lg:min-h-[52px] lg:px-6 lg:text-lg"
+          />
+          <UTooltip text="เข้าสู่ระบบ">
+            <button
+              class="rounded-full p-3 text-white transition-colors hover:bg-white/5 hover:text-primary-400 md:hidden"
+              @click="navigateTo('/Login')"
+            >
+              <Icon name="i-lucide-log-in" class="block text-2xl" />
+            </button>
+          </UTooltip>
+        </div>
       </div>
     </template>
 
@@ -204,13 +261,21 @@ function signOut() {
       </div>
     </template>
   </UHeader>
+  </div>
+  <div class="h-[76px] shrink-0 lg:h-[88px]" aria-hidden="true" />
 </template>
 
 <style scoped>
 :deep(header) {
-  min-height: 72px !important;
+  min-height: 76px !important;
   display: flex;
   align-items: center;
+}
+
+@media (min-width: 1024px) {
+  :deep(header) {
+    min-height: 88px !important;
+  }
 }
 
 :deep(.u-header) {
