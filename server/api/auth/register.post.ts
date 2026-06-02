@@ -1,7 +1,13 @@
 import bcrypt from "bcryptjs";
 import { query } from "~~/server/utils/db";
-import { signJwt } from "~~/server/utils/jwt";
 import { checkRateLimit, getRateLimitInfo } from "~~/server/utils/rateLimit";
+import {
+  createEmailVerificationToken,
+  emailVerificationExpiry,
+  ensureEmailVerificationSchema,
+  formatEmailVerificationMysqlDate,
+} from "~~/server/utils/emailVerification";
+import { sendEmailVerificationEmail } from "~~/server/utils/emailVerificationEmails";
 
 interface RegisterBody {
   username?: string;
@@ -56,6 +62,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Passwords do not match" });
   }
 
+  await ensureEmailVerificationSchema();
+
   const existing = await query<any>(
     "SELECT id, username, email FROM users WHERE username = ? OR email = ? LIMIT 1",
     [username, email]
@@ -72,15 +80,41 @@ export default defineEventHandler(async (event) => {
     [username, email, hashedPassword]
   );
   const userId = (result as any).insertId;
-  const token = signJwt({ id: userId, username, email, role: "user" });
+  const { token, tokenHash } = createEmailVerificationToken();
+  const expiresAt = emailVerificationExpiry();
+
+  try {
+    await query("INSERT INTO email_verification_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)", [
+      userId,
+      tokenHash,
+      formatEmailVerificationMysqlDate(expiresAt),
+    ]);
+
+    const mailResult = await sendEmailVerificationEmail({
+      to: email,
+      username,
+      token,
+    });
+
+    if (mailResult.skipped) {
+      throw new Error(mailResult.reason || "Email verification mail was skipped");
+    }
+  } catch (error) {
+    await query("DELETE FROM users WHERE id = ? AND email_verified_at IS NULL", [userId]);
+    throw createError({
+      statusCode: 500,
+      statusMessage: "Could not send verification email. Please try again later.",
+    });
+  }
 
   return {
+    ok: true,
     user: {
       id: userId,
       username,
       email,
       role: "user",
-      token,
     },
+    message: "Please verify your email before signing in.",
   };
 });

@@ -2,6 +2,7 @@ import { query } from "~~/server/utils/db";
 import bcrypt from "bcryptjs";
 import { signJwt } from "~~/server/utils/jwt";
 import { checkRateLimit, getRateLimitInfo } from "~~/server/utils/rateLimit";
+import { ensureEmailVerificationSchema } from "~~/server/utils/emailVerification";
 
 export default defineEventHandler(async (event) => {
   // Rate limiting — ตรวจจำนวน attempt ต่อ IP
@@ -22,9 +23,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Missing username/password" });
   }
 
+  await ensureEmailVerificationSchema();
+
   // ดึงเฉพาะ field ที่ต้องใช้ (ไม่ SELECT *)
   const users = await query<any>(
-    "SELECT id, username, password, email, role FROM users WHERE username = ? LIMIT 1",
+    "SELECT id, username, password, email, role, email_verified_at FROM users WHERE username = ? LIMIT 1",
     [body.username]
   );
 
@@ -40,6 +43,10 @@ export default defineEventHandler(async (event) => {
 
   if (!match) {
     throw createError({ statusCode: 401, statusMessage: genericError });
+  }
+
+  if (!user.email_verified_at) {
+    throw createError({ statusCode: 403, statusMessage: "Email is not verified" });
   }
 
   const token = signJwt({ id: user.id, username: user.username, email: user.email, role: user.role });

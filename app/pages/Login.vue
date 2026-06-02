@@ -29,8 +29,14 @@ async function handleLogin() {
   try {
     await auth.login(username.value.trim(), password.value)
     await navigateTo("/")
-  } catch {
-    errorMessage.value = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
+  } catch (err: any) {
+    const message = err.data?.statusMessage || err.message || ""
+    const statusCode = err.statusCode || err.data?.statusCode || err.response?.status
+    if (statusCode === 403 || message.includes("verified")) {
+      errorMessage.value = "กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ"
+    } else {
+      errorMessage.value = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
+    }
   } finally {
     isLoading.value = false
   }

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import Logo from "@@/public/Swizer/SwizerMainLogo.png"
-import { useAuthStore } from "@/store/auth"
 
 definePageMeta({
   layout: "default",
@@ -10,13 +9,14 @@ useHead({
   title: "สมัครสมาชิก | Swizer Superfoods",
 })
 
-const auth = useAuthStore()
 const username = ref("")
 const email = ref("")
 const password = ref("")
 const confirmPassword = ref("")
 const acceptedTerms = ref(false)
 const isLoading = ref(false)
+const isSubmitted = ref(false)
+const registeredEmail = ref("")
 const errorMessage = ref("")
 
 function validateForm() {
@@ -52,7 +52,7 @@ async function handleRegister() {
   errorMessage.value = ""
 
   try {
-    const res: any = await $fetch("/api/auth/register", {
+    await $fetch("/api/auth/register", {
       method: "POST",
       body: {
         username: username.value.trim(),
@@ -62,14 +62,8 @@ async function handleRegister() {
       },
     })
 
-    auth.user = {
-      id: res.user.id,
-      username: res.user.username,
-      email: res.user.email,
-      role: res.user.role,
-    }
-    auth.token = res.user.token
-    await navigateTo("/Profile")
+    registeredEmail.value = email.value.trim()
+    isSubmitted.value = true
   } catch (err: any) {
     const message = err.data?.statusMessage || err.message || "สมัครสมาชิกไม่สำเร็จ"
     if (message.includes("Username")) {
@@ -104,7 +98,28 @@ async function handleRegister() {
         </p>
       </div>
 
-      <form class="fade-in-up space-y-5" style="animation-delay: 200ms; animation-duration: 0.8s;" @submit.prevent="handleRegister">
+      <Transition name="fade" mode="out-in">
+        <div v-if="isSubmitted" class="fade-in-up space-y-5 text-center" style="animation-delay: 200ms; animation-duration: 0.8s;">
+          <UAlert
+            color="success"
+            variant="soft"
+            icon="i-lucide-mail-check"
+            title="สมัครสมาชิกเรียบร้อย"
+            :description="`เราได้ส่งลิงก์ยืนยันอีเมลไปที่ ${registeredEmail} แล้ว กรุณากดยืนยันก่อนเข้าสู่ระบบ`"
+          />
+
+          <UButton
+            to="/Login"
+            icon="i-lucide-log-in"
+            label="ไปหน้าเข้าสู่ระบบ"
+            color="neutral"
+            size="lg"
+            block
+            class="min-h-12 !bg-[#83c63d] font-black !text-white shadow-lg shadow-[#83c63d]/20 hover:!bg-[#72b334]"
+          />
+        </div>
+
+        <form v-else class="fade-in-up space-y-5" style="animation-delay: 200ms; animation-duration: 0.8s;" @submit.prevent="handleRegister">
         <UFormField label="Username" required>
           <UInput
             v-model="username"
@@ -179,7 +194,8 @@ async function handleRegister() {
           :loading="isLoading"
           class="min-h-12 !bg-[#83c63d] font-black !text-white shadow-lg shadow-[#83c63d]/20 hover:!bg-[#72b334]"
         />
-      </form>
+        </form>
+      </Transition>
 
       <p class="fade-in-up mt-8 text-center text-sm text-neutral-600" style="animation-delay: 300ms; animation-duration: 0.8s;">
         มีบัญชีแล้ว?
