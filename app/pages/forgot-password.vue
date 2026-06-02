@@ -23,10 +23,19 @@ async function handleSubmit() {
   isLoading.value = true
   errorMessage.value = ""
 
-  await new Promise((resolve) => setTimeout(resolve, 450))
-
-  isSubmitted.value = true
-  isLoading.value = false
+  try {
+    await $fetch("/api/auth/forgot-password", {
+      method: "POST",
+      body: {
+        email: email.value.trim(),
+      },
+    })
+    isSubmitted.value = true
+  } catch (err: any) {
+    errorMessage.value = err.data?.statusMessage || err.message || "ส่งคำขอไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -45,7 +54,7 @@ async function handleSubmit() {
           ลืมรหัสผ่าน
         </h1>
         <p class="mt-2 text-sm leading-6 text-neutral-600">
-          กรอกอีเมลที่ใช้สมัครบัญชี ระบบจะแสดงขั้นตอนถัดไปให้คุณ
+          กรอกอีเมลที่ใช้สมัครบัญชี แล้วระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ให้คุณ
         </p>
       </div>
 
@@ -56,7 +65,7 @@ async function handleSubmit() {
             variant="soft"
             icon="i-lucide-mail-check"
             title="รับคำขอเรียบร้อย"
-            description="หากอีเมลนี้มีอยู่ในระบบ คุณจะได้รับขั้นตอนสำหรับตั้งรหัสผ่านใหม่"
+            description="หากอีเมลนี้มีอยู่ในระบบ คุณจะได้รับลิงก์สำหรับตั้งรหัสผ่านใหม่ทางอีเมล"
           />
 
           <UButton
