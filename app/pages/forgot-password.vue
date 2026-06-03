@@ -13,6 +13,11 @@ const email = ref("")
 const isLoading = ref(false)
 const isSubmitted = ref(false)
 const errorMessage = ref("")
+const inputUi = {
+  base: "rounded-full bg-neutral-50/80 px-4 py-3 text-base shadow-inner shadow-neutral-950/[0.02] ring-1 ring-primary-100 transition focus:bg-white focus:ring-4 focus:ring-primary-500/10",
+}
+const primaryButtonClass =
+  "min-h-[52px] rounded-full !bg-[#83c63d] px-7 font-black !text-white shadow-lg shadow-[#83c63d]/20 transition hover:-translate-y-0.5 hover:!bg-[#72b334]"
 
 async function handleSubmit() {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) {
@@ -40,9 +45,9 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <main class="flex min-h-screen items-center justify-center bg-[#eef6e9] px-4 py-12">
+  <main class="flex min-h-screen items-center justify-center bg-[linear-gradient(180deg,#f7fbf1_0%,#eef6e9_55%,#e7f1df_100%)] px-4 py-12">
     <div
-      class="fade-in-up w-full max-w-md rounded-lg border border-primary-100 bg-white p-8 shadow-xl shadow-primary-950/10 md:p-10"
+      class="fade-in-up w-full max-w-md rounded-[2rem] border border-white/70 bg-white/95 p-8 shadow-[0_30px_80px_-30px_rgba(66,105,0,0.35)] md:p-10"
       style="animation-duration: 0.8s;"
     >
       <div class="fade-in-up mb-8 text-center" style="animation-delay: 100ms; animation-duration: 0.8s;">
@@ -75,7 +80,7 @@ async function handleSubmit() {
             color="neutral"
             size="lg"
             block
-            class="min-h-12 !bg-[#83c63d] font-black !text-white shadow-lg shadow-[#83c63d]/20 hover:!bg-[#72b334]"
+            :class="primaryButtonClass"
           />
         </div>
 
@@ -89,6 +94,7 @@ async function handleSubmit() {
               size="lg"
               autocomplete="email"
               class="w-full"
+              :ui="inputUi"
             />
           </UFormField>
 
@@ -110,7 +116,7 @@ async function handleSubmit() {
             size="lg"
             block
             :loading="isLoading"
-            class="min-h-12 !bg-[#83c63d] font-black !text-white shadow-lg shadow-[#83c63d]/20 hover:!bg-[#72b334]"
+            :class="primaryButtonClass"
           />
 
           <p class="text-center text-sm text-neutral-600">

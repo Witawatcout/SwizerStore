@@ -4,13 +4,18 @@ useHead({
 });
 
 const { data: products, status } = useLazyFetch<any[]>("/api/products");
-const { data: categoriesData } = useLazyFetch<any[]>("/api/categories");
+const { data: categoriesData, status: categoriesStatus } = useLazyFetch<any[]>("/api/categories");
 
 const selectedCategory = ref<string>("all");
 const searchText = ref("");
 const sortBy = ref("name");
 
-const isLoading = computed(() => status.value === "pending" || status.value === "idle");
+const isLoading = computed(() =>
+  status.value === "pending" ||
+  status.value === "idle" ||
+  categoriesStatus.value === "pending" ||
+  categoriesStatus.value === "idle"
+);
 const productList = computed(() => products.value || []);
 const categoryList = computed(() => categoriesData.value || []);
 
@@ -111,7 +116,12 @@ function clearFilters() {
             </p>
           </div>
 
-          <div class="grid gap-3 sm:grid-cols-[minmax(220px,1fr)_180px] lg:min-w-[520px]">
+          <div v-if="isLoading" class="grid gap-3 sm:grid-cols-[minmax(220px,1fr)_180px] lg:min-w-[520px]" aria-hidden="true">
+            <USkeleton class="h-12 rounded-full" />
+            <USkeleton class="h-12 rounded-full" />
+          </div>
+
+          <div v-else class="grid gap-3 sm:grid-cols-[minmax(220px,1fr)_180px] lg:min-w-[520px]">
             <UInput
               v-model="searchText"
               icon="i-lucide-search"
@@ -122,7 +132,11 @@ function clearFilters() {
           </div>
         </div>
 
-        <div class="mb-5 lg:hidden">
+        <div v-if="isLoading" class="mb-5 lg:hidden" aria-hidden="true">
+          <USkeleton class="h-12 rounded-full" />
+        </div>
+
+        <div v-else class="mb-5 lg:hidden">
           <USelect
             v-model="selectedCategory"
             :items="categoryOptions"
@@ -134,7 +148,18 @@ function clearFilters() {
 
         <div class="grid gap-8 lg:grid-cols-[280px_minmax(0,1fr)]">
           <aside class="hidden lg:block">
-            <div class="sticky top-24 rounded-lg border border-primary-200 bg-[#fbfff6] p-4 shadow-sm shadow-primary-950/5">
+            <div v-if="isLoading" class="sticky top-24 rounded-lg border border-primary-200 bg-[#fbfff6] p-4 shadow-sm shadow-primary-950/5" aria-hidden="true">
+              <div class="mb-5 space-y-2">
+                <USkeleton class="h-3 w-24 rounded-full" />
+                <USkeleton class="h-6 w-40 rounded-full" />
+              </div>
+              <div class="space-y-3">
+                <USkeleton class="h-10 rounded-md" />
+                <USkeleton v-for="i in 6" :key="`category-skeleton-${i}`" class="h-9 rounded-md" />
+              </div>
+            </div>
+
+            <div v-else class="sticky top-24 rounded-lg border border-primary-200 bg-[#fbfff6] p-4 shadow-sm shadow-primary-950/5">
               <div class="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <p class="text-xs font-bold uppercase tracking-widest text-primary-700">Categories</p>
@@ -201,7 +226,18 @@ function clearFilters() {
           </aside>
 
           <section>
-            <div class="mb-5 flex flex-col gap-3 rounded-lg border border-primary-200 bg-[#fbfff6] px-4 py-3 shadow-sm shadow-primary-950/5 sm:flex-row sm:items-center sm:justify-between">
+            <div v-if="isLoading" class="mb-5 flex flex-col gap-3 rounded-lg border border-primary-200 bg-[#fbfff6] px-4 py-3 shadow-sm shadow-primary-950/5 sm:flex-row sm:items-center sm:justify-between" aria-hidden="true">
+              <div class="space-y-2">
+                <USkeleton class="h-5 w-48 rounded-full" />
+                <USkeleton class="h-4 w-32 rounded-full" />
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <USkeleton class="h-6 w-28 rounded-full" />
+                <USkeleton class="h-6 w-24 rounded-full" />
+              </div>
+            </div>
+
+            <div v-else class="mb-5 flex flex-col gap-3 rounded-lg border border-primary-200 bg-[#fbfff6] px-4 py-3 shadow-sm shadow-primary-950/5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p class="font-black text-neutral-950">{{ selectedCategoryName }}</p>
                 <p class="text-sm text-neutral-700">
@@ -217,7 +253,7 @@ function clearFilters() {
             </div>
 
             <div v-if="isLoading" class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-              <USkeleton v-for="i in 8" :key="i" class="aspect-[3/4] rounded-lg" />
+              <ProductCardSkeleton v-for="i in 8" :key="`product-skeleton-${i}`" />
             </div>
 
             <div v-else-if="filteredProducts.length === 0" class="rounded-lg border border-primary-200 bg-[#fbfff6] px-6 py-16 text-center shadow-sm shadow-primary-950/5">
