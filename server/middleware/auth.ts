@@ -5,7 +5,7 @@ export default defineEventHandler((event) => {
   const method = getMethod(event);
 
   if (!path.startsWith("/api/") || path.startsWith("/api/auth/")) return;
-  if (path === "/api/checkout" || path === "/api/webhook/omise") return;
+  if (path === "/api/checkout" || path === "/api/contact" || path === "/api/webhook/omise") return;
 
   const isPublicRead =
     method === "GET" &&

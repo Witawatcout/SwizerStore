@@ -197,7 +197,7 @@ watch(
             icon="i-lucide-shield-check"
             color="primary"
             variant="ghost"
-            class="hidden rounded-full text-white hover:bg-white/5 hover:text-primary-400 md:inline-flex lg:size-12"
+            class="hidden size-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] p-0 text-white transition-colors hover:bg-white/10 hover:text-primary-400 md:inline-flex lg:size-12 [&>span]:size-5 lg:[&>span]:size-6"
             aria-label="Admin"
           />
         </UTooltip>

@@ -6,6 +6,7 @@ interface MailInput {
   subject: string;
   html: string;
   text?: string;
+  replyTo?: string;
 }
 
 interface SmtpConfig {
@@ -44,6 +45,10 @@ function extractEmailAddress(value: string) {
 
 function encodeHeader(value: string) {
   return `=?UTF-8?B?${Buffer.from(value, "utf8").toString("base64")}?=`;
+}
+
+function sanitizeHeaderValue(value: string) {
+  return value.replace(/[\r\n]+/g, " ").trim();
 }
 
 function stripHtml(html: string) {
@@ -163,12 +168,20 @@ export async function sendMail(input: MailInput) {
 
     const text = input.text || stripHtml(input.html);
     const boundary = `swizer-${Date.now()}`;
-    const message = [
+    const headers = [
       `From: ${config.fromHeader}`,
       `To: ${recipients.join(", ")}`,
       `Subject: ${encodeHeader(input.subject)}`,
       "MIME-Version: 1.0",
       `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    ];
+
+    if (input.replyTo) {
+      headers.splice(3, 0, `Reply-To: ${sanitizeHeaderValue(input.replyTo)}`);
+    }
+
+    const message = [
+      ...headers,
       "",
       `--${boundary}`,
       'Content-Type: text/plain; charset="UTF-8"',

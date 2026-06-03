@@ -76,25 +76,42 @@
           </div>
 
           <form @submit.prevent="submitForm" class="space-y-6 relative z-10">
+            <UAlert
+              v-if="successMessage"
+              color="primary"
+              variant="soft"
+              icon="i-lucide-check-circle-2"
+              :description="successMessage"
+              class="rounded-2xl"
+            />
+            <UAlert
+              v-if="errorMessage"
+              color="error"
+              variant="soft"
+              icon="i-lucide-circle-alert"
+              :description="errorMessage"
+              class="rounded-2xl"
+            />
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="space-y-2.5 fade-in-up" style="animation-delay: 500ms;">
                 <label class="block text-xs font-bold uppercase tracking-widest text-neutral-500 ml-2">ชื่อ-นามสกุล</label>
-                <input v-model="form.name" required class="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-4 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:bg-white transition-all outline-none text-neutral-800 font-medium translate-y-0" placeholder="ชื่อของคุณ" type="text" />
+                <input v-model="form.name" :disabled="sending" required class="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-4 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:bg-white transition-all outline-none text-neutral-800 font-medium translate-y-0 disabled:opacity-60" placeholder="ชื่อของคุณ" type="text" />
               </div>
               <div class="space-y-2.5 fade-in-up" style="animation-delay: 600ms;">
                 <label class="block text-xs font-bold uppercase tracking-widest text-neutral-500 ml-2">อีเมล</label>
-                <input v-model="form.email" required class="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-4 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:bg-white transition-all outline-none text-neutral-800 font-medium" placeholder="email@example.com" type="email" />
+                <input v-model="form.email" :disabled="sending" required class="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-4 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:bg-white transition-all outline-none text-neutral-800 font-medium disabled:opacity-60" placeholder="email@example.com" type="email" />
               </div>
             </div>
             
             <div class="space-y-2.5 fade-in-up" style="animation-delay: 700ms;">
               <label class="block text-xs font-bold uppercase tracking-widest text-neutral-500 ml-2">หัวข้อ</label>
-              <input v-model="form.subject" required class="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-4 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:bg-white transition-all outline-none text-neutral-800 font-medium" placeholder="เรื่องที่ต้องการติดต่อ" type="text" />
+              <input v-model="form.subject" :disabled="sending" required class="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-4 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:bg-white transition-all outline-none text-neutral-800 font-medium disabled:opacity-60" placeholder="เรื่องที่ต้องการติดต่อ" type="text" />
             </div>
             
             <div class="space-y-2.5 fade-in-up" style="animation-delay: 800ms;">
               <label class="block text-xs font-bold uppercase tracking-widest text-neutral-500 ml-2">ข้อความ</label>
-              <textarea v-model="form.message" required class="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-4 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:bg-white transition-all outline-none resize-none text-neutral-800 font-medium" placeholder="พิมพ์ข้อความรายละเอียดที่นี่..." rows="5"></textarea>
+              <textarea v-model="form.message" :disabled="sending" required class="w-full bg-neutral-50 border border-neutral-100 rounded-2xl p-4 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:bg-white transition-all outline-none resize-none text-neutral-800 font-medium disabled:opacity-60" placeholder="พิมพ์ข้อความรายละเอียดที่นี่..." rows="5"></textarea>
             </div>
             
             <BaseButton 
@@ -102,9 +119,11 @@
               variant="primary" 
               size="xl" 
               icon="mynaui:send" 
+              :loading="sending"
+              :disabled="sending"
               class="w-full mt-4"
             >
-              ส่งข้อความ
+              {{ sending ? 'กำลังส่งข้อความ...' : 'ส่งข้อความ' }}
             </BaseButton>
           </form>
         </div>
@@ -127,6 +146,9 @@ const form = ref({
   subject: '',
   message: ''
 })
+const sending = ref(false)
+const successMessage = ref('')
+const errorMessage = ref('')
 
 const contactMethods = [
   {
@@ -152,16 +174,35 @@ const contactMethods = [
   }
 ]
 
-const submitForm = () => {
-  // Mock form submission
-  alert(`ขอบคุณคุณ ${form.value.name}\n\nข้อความถูกส่งให้ทีมงานเรียบร้อยแล้ว เราจะรีบติดต่อกลับไปที่อีเมล ${form.value.email} ให้เร็วที่สุดครับ!`)
-  
-  // Clear form
-  form.value = {
-    name: '',
-    email: '',
-    subject: '',
-    message: ''
+const submitForm = async () => {
+  if (sending.value) return
+
+  successMessage.value = ''
+  errorMessage.value = ''
+  sending.value = true
+
+  try {
+    await $fetch('/api/contact', {
+      method: 'POST',
+      body: {
+        name: form.value.name.trim(),
+        email: form.value.email.trim(),
+        subject: form.value.subject.trim(),
+        message: form.value.message.trim()
+      }
+    })
+
+    successMessage.value = `ขอบคุณคุณ ${form.value.name.trim()} เราได้รับข้อความแล้ว และจะติดต่อกลับทางอีเมล ${form.value.email.trim()} โดยเร็วที่สุดครับ`
+    form.value = {
+      name: '',
+      email: '',
+      subject: '',
+      message: ''
+    }
+  } catch (error: any) {
+    errorMessage.value = error?.data?.statusMessage || error?.message || 'ส่งข้อความไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'
+  } finally {
+    sending.value = false
   }
 }
 </script>
