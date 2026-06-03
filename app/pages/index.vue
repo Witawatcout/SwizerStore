@@ -160,9 +160,11 @@
               Latest News</h2>
             <p class="text-neutral-500 text-lg md:text-xl font-medium">อัปเดตบทความเพื่อสุขภาพและข่าวสารล่าสุดจากเรา</p>
           </div>
-          <BaseButton to="/news" variant="white" icon="mynaui:arrow-long-right-solid">
-            ดูบทความทั้งหมด
-          </BaseButton>
+          <NuxtLink to="/news" class="flex gap-4">
+            <BaseButton variant="white" icon="mynaui:arrow-long-right-solid" class="cursor-pointer">
+              ดูบทความทั้งหมด
+            </BaseButton>
+          </NuxtLink>
         </div>
 
         <div v-if="isHomeLoading" class="grid grid-cols-1 md:grid-cols-3 gap-8">
