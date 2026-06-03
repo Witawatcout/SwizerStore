@@ -1,4 +1,5 @@
 import { query } from '@@/server/utils/db';
+import { ensureCategoryStatusSchema } from '~~/server/utils/categories';
 
 export default defineEventHandler(async (event) => {
   const id = decodeURIComponent(getRouterParam(event, 'id') || '');
@@ -8,6 +9,8 @@ export default defineEventHandler(async (event) => {
   }
   
   try {
+    await ensureCategoryStatusSchema();
+
     const products = await query<{ total: number }>('SELECT COUNT(*) AS total FROM products WHERE category_id=?', [id]);
     const productCount = Number(products[0]?.total || 0);
 

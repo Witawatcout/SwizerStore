@@ -19,7 +19,12 @@ export default defineEventHandler(async (event) => {
       SELECT p.*, c.name as category_name
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
-      ${includeInactive ? "" : "WHERE COALESCE(p.is_active, 1) = 1"}
+      LEFT JOIN categories parent ON c.parent_id = parent.id
+      ${
+        includeInactive
+          ? ""
+          : "WHERE COALESCE(p.is_active, 1) = 1 AND (p.category_id IS NULL OR (COALESCE(c.is_active, 1) = 1 AND (c.parent_id IS NULL OR COALESCE(parent.is_active, 1) = 1)))"
+      }
       ORDER BY p.name ASC
     `);
 

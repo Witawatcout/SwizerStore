@@ -4,7 +4,7 @@ definePageMeta({ layout: "admin" });
 useHead({ title: "Admin Dashboard | Swizer Superfoods" });
 
 const { data: productsData } = useAuthFetch<any[]>("/api/products?includeInactive=1");
-const { data: categoriesData } = useAuthFetch<any[]>("/api/categories");
+const { data: categoriesData } = useAuthFetch<any[]>("/api/categories?includeInactive=1");
 const { data: ordersData, status: ordersStatus, refresh: refreshOrders } = useAuthFetch<any[]>("/api/admin/orders");
 const {
   data: notificationData,

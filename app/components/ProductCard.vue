@@ -17,6 +17,18 @@ const cartStore = useCartStore()
 const added = ref(false)  // ✅ เพิ่ม state
 const { fly } = useFlyToCart()
 const btnRef = ref<HTMLElement | null>(null)
+const plainDescription = computed(() =>
+  String(props.product.description || '')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim()
+)
 const addToCart = () => {
 
   if (added.value) return  // กันกด spam
@@ -77,7 +89,7 @@ const addToCart = () => {
 
       <p
         class="text-neutral-500 text-sm leading-relaxed line-clamp-2 font-medium mb-8 flex-grow opacity-80 group-hover:opacity-100 transition-opacity">
-        {{ product.description }}
+        {{ plainDescription }}
       </p>
 
       <!-- Bottom Bar -->

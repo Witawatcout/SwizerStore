@@ -3,7 +3,7 @@ definePageMeta({ layout: 'admin' })
 
 useHead({ title: 'จัดการหมวดหมู่ | Admin' })
 
-const { data: categoriesData, status: categoriesStatus, refresh: refreshCategories } = useAuthFetch<any>('/api/categories')
+const { data: categoriesData, status: categoriesStatus, refresh: refreshCategories } = useAuthFetch<any>('/api/categories?includeInactive=1')
 
 const loading = computed(() => categoriesStatus.value === 'pending' || categoriesStatus.value === 'idle')
 </script>

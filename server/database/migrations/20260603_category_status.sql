@@ -1,0 +1,2 @@
+ALTER TABLE categories
+  ADD COLUMN IF NOT EXISTS is_active TINYINT(1) DEFAULT 1 AFTER parent_id;

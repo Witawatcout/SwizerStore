@@ -41,7 +41,7 @@
             </div>
 
             <div class="space-y-6 mb-10 text-neutral-600 leading-relaxed">
-              <p class="text-lg">{{ product.description }}</p>
+              <div class="product-content text-lg" v-html="product.description"></div>
               <div class="flex flex-wrap gap-3">
                 <div v-for="tag in product.tags" :key="tag"
                   class="px-4 py-2 bg-neutral-100 rounded-full text-neutral-700 text-xs font-bold font-label border border-neutral-200 shadow-sm">
@@ -208,3 +208,63 @@ const addToCart = () => {
   if (cartBtnRef.value) fly(cartBtnRef.value)
 }
 </script>
+
+<style scoped>
+.product-content :deep(h2) {
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: rgb(23 23 23);
+}
+
+.product-content :deep(h3) {
+  margin-top: 1rem;
+  margin-bottom: 0.4rem;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.3;
+  color: rgb(23 23 23);
+}
+
+.product-content :deep(p) {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.8;
+}
+
+.product-content :deep(ul),
+.product-content :deep(ol) {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding-left: 1.35rem;
+}
+
+.product-content :deep(ul) {
+  list-style: disc;
+}
+
+.product-content :deep(ol) {
+  list-style: decimal;
+}
+
+.product-content :deep(li) {
+  margin-top: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.product-content :deep(blockquote) {
+  margin: 1rem 0;
+  border-left: 4px solid #8dc63f;
+  padding-left: 1rem;
+  color: rgb(64 64 64);
+}
+
+.product-content :deep(a) {
+  color: #517a24;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+</style>

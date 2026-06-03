@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
+import RichTextEditor from '~/components/RichTextEditor.vue'
 
 const props = defineProps<{
   data: any[]
@@ -284,11 +285,16 @@ async function handleSave() {
 async function handleDelete(id: string) {
   if (!confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่?')) return
   try {
-    await $authFetch(`/api/products/${id}`, { method: 'DELETE' })
-    toast.add({ title: 'ลบสินค้าเรียบร้อย', color: 'success', icon: 'i-lucide-check-circle' })
+    const result = await $authFetch<{ message?: string; deleted?: boolean; deactivated?: boolean }>(`/api/products/${id}`, { method: 'DELETE' })
+    toast.add({
+      title: result.deactivated ? 'ปิดการขายสินค้าแทน' : 'ลบสินค้าเรียบร้อย',
+      description: result.message,
+      color: result.deactivated ? 'warning' : 'success',
+      icon: result.deactivated ? 'i-lucide-circle-alert' : 'i-lucide-check-circle',
+    })
     emit('delete', id)
   } catch (err: any) {
-    toast.add({ title: 'เกิดข้อผิดพลาด', description: err.data?.statusMessage || err.message, color: 'error', icon: 'i-lucide-alert-circle' })
+    toast.add({ title: 'ลบสินค้าไม่สำเร็จ', description: err.data?.statusMessage || err.message, color: 'error', icon: 'i-lucide-alert-circle' })
   }
 }
 </script>
@@ -431,10 +437,20 @@ async function handleDelete(id: string) {
                 <UInput v-model="form.badge" placeholder="BEST SELLER" icon="i-lucide-award" autocomplete="off" class="w-full" />
               </UFormField>
 
-              <UFormField label="รายละเอียด" class="col-span-2 w-full" hint="ไม่บังคับ">
-                <UTextarea v-model="form.description" :rows="3" placeholder="รายละเอียดสินค้าโดยย่อ..." autoresize :maxrows="6" autocomplete="off" class="w-full" />
-              </UFormField>
             </div>
+          </div>
+
+          <USeparator />
+
+          <!-- ═══════════ เนื้อหารายละเอียดสินค้า ═══════════ -->
+          <div class="space-y-4">
+            <div>
+              <h4 class="font-semibold text-base text-default">เนื้อหา</h4>
+              <p class="text-sm text-muted mt-1">รายละเอียดสินค้าแบบเต็ม รองรับหัวข้อ ตัวหนา ลิสต์ ลิงก์ และการจัดย่อหน้าเหมือนหน้า News</p>
+            </div>
+            <UFormField label="รายละเอียดสินค้า" name="description" class="w-full" hint="ไม่บังคับ">
+              <RichTextEditor v-model="form.description" placeholder="พิมพ์รายละเอียดสินค้า เช่น จุดเด่น วิธีใช้ ส่วนผสม หรือข้อมูลเพิ่มเติม..." class="w-full" />
+            </UFormField>
           </div>
 
           <USeparator />
