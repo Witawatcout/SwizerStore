@@ -70,13 +70,24 @@ async function handleSave() {
 }
 
 async function handleDelete(id: string) {
-  if (!confirm('คุณต้องการลบหมวดหมู่นี้ใช่หรือไม่?')) return
+  const category = props.data?.find((item: any) => item.id === id)
+  const categoryName = category?.name || id
+
+  if (!confirm(`คุณต้องการลบหมวดหมู่ "${categoryName}" ใช่หรือไม่?`)) return
   try {
     await $authFetch(`/api/categories/${id}`, { method: 'DELETE' })
     toast.add({ title: 'ลบหมวดหมู่เรียบร้อย', color: 'success', icon: 'i-lucide-check-circle' })
     emit('delete', id)
   } catch (err: any) {
-    toast.add({ title: 'เกิดข้อผิดพลาด', description: err.data?.statusMessage || err.message, color: 'error', icon: 'i-lucide-alert-circle' })
+    const statusCode = err?.data?.statusCode || err?.statusCode
+    const message = err?.data?.statusMessage || err?.message || 'ลบหมวดหมู่ไม่สำเร็จ'
+
+    toast.add({
+      title: statusCode === 409 ? 'ยังลบหมวดหมู่นี้ไม่ได้' : 'ลบหมวดหมู่ไม่สำเร็จ',
+      description: message,
+      color: 'error',
+      icon: statusCode === 409 ? 'i-lucide-circle-alert' : 'i-lucide-alert-circle',
+    })
   }
 }
 
