@@ -1,5 +1,6 @@
 import { query } from "~~/server/utils/db";
 import { sendMail } from "~~/server/utils/email";
+import { getActiveAdminEmailAddresses } from "~~/server/utils/adminEmailRecipients";
 
 interface OrderEmailRow {
   id: string;
@@ -360,10 +361,9 @@ export async function sendOrderPaidEmails(
     ...customerEmail,
   });
 
-  const config = useRuntimeConfig();
-  const adminEmail = String(config.adminEmail || "").trim();
+  const adminEmails = await getActiveAdminEmailAddresses();
 
-  if (adminEmail && !isStatusUpdate) {
+  if (adminEmails.length && !isStatusUpdate) {
     const adminBody = buildEmail(order, items, {
       audience: "admin",
       eyebrow: "New paid order",
@@ -374,7 +374,7 @@ export async function sendOrderPaidEmails(
     });
 
     await sendMail({
-      to: [adminEmail],
+      to: adminEmails,
       subject: `คำสั่งซื้อใหม่ ${order.id} | SwizerStore Admin`,
       ...adminBody,
     });
@@ -387,5 +387,5 @@ export async function sendOrderPaidEmails(
     );
   }
 
-  return { sent: !customerResult.skipped, adminNotified: Boolean(adminEmail && !isStatusUpdate) };
+  return { sent: !customerResult.skipped, adminNotified: Boolean(adminEmails.length && !isStatusUpdate) };
 }

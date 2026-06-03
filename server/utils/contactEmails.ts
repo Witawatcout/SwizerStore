@@ -1,4 +1,5 @@
 import { sendMail } from "~~/server/utils/email";
+import { getActiveAdminEmailAddresses } from "~~/server/utils/adminEmailRecipients";
 
 interface ContactEmailInput {
   name: string;
@@ -58,11 +59,6 @@ function buildAdminEmail(input: ContactEmailInput) {
                     <td style="width:140px;padding:10px 0;color:#667085;font-size:13px;font-weight:800;">หัวข้อ</td>
                     <td style="padding:10px 0;color:#17210f;font-size:15px;font-weight:800;">${escapeHtml(input.subject)}</td>
                   </tr>
-                  ${
-                    input.ip
-                      ? `<tr><td style="width:140px;padding:10px 0;color:#667085;font-size:13px;font-weight:800;">IP</td><td style="padding:10px 0;color:#667085;font-size:13px;">${escapeHtml(input.ip)}</td></tr>`
-                      : ""
-                  }
                 </table>
                 <div style="height:1px;background:#e4eadf;margin:18px 0 22px;"></div>
                 <div style="font-size:13px;font-weight:800;color:#667085;margin-bottom:8px;">ข้อความ</div>
@@ -92,7 +88,6 @@ function buildAdminEmail(input: ContactEmailInput) {
     `ชื่อ: ${input.name}`,
     `อีเมล: ${input.email}`,
     `หัวข้อ: ${input.subject}`,
-    input.ip ? `IP: ${input.ip}` : "",
     "",
     "ข้อความ:",
     input.message,
@@ -160,12 +155,11 @@ function buildCustomerEmail(input: ContactEmailInput) {
 }
 
 export async function sendContactEmails(input: ContactEmailInput) {
-  const config = useRuntimeConfig();
-  const adminEmail = String(config.adminEmail || "info@swizerstore.com").trim();
+  const adminEmails = await getActiveAdminEmailAddresses();
   const adminEmailBody = buildAdminEmail(input);
 
   const adminResult = await sendMail({
-    to: [adminEmail],
+    to: adminEmails,
     subject: `ข้อความติดต่อใหม่: ${input.subject}`,
     replyTo: input.email,
     ...adminEmailBody,

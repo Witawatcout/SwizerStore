@@ -3,6 +3,16 @@ definePageMeta({ layout: "admin" });
 
 useHead({ title: "Admin Dashboard | Swizer Superfoods" });
 
+interface AdminEmailRecipient {
+  id: number;
+  name: string;
+  email: string;
+  is_active: number | boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+const toast = useToast();
 const { data: productsData } = useAuthFetch<any[]>("/api/products?includeInactive=1");
 const { data: categoriesData } = useAuthFetch<any[]>("/api/categories?includeInactive=1");
 const { data: ordersData, status: ordersStatus, refresh: refreshOrders } = useAuthFetch<any[]>("/api/admin/orders");
@@ -11,11 +21,21 @@ const {
   pending: notificationsPending,
   refresh: refreshNotifications,
 } = useAuthFetch<any>("/api/admin/notifications/orders");
+const {
+  data: emailRecipientsData,
+  status: emailRecipientsStatus,
+  refresh: refreshEmailRecipients,
+} = useAuthFetch<AdminEmailRecipient[]>("/api/admin/email-recipients");
 
 const products = computed(() => productsData.value || []);
 const categories = computed(() => categoriesData.value || []);
 const orders = computed(() => ordersData.value || []);
 const loadingOrders = computed(() => ordersStatus.value === "pending" || ordersStatus.value === "idle");
+const emailRecipients = computed(() => emailRecipientsData.value || []);
+const loadingEmailRecipients = computed(() => emailRecipientsStatus.value === "pending" || emailRecipientsStatus.value === "idle");
+const activeEmailRecipientCount = computed(() =>
+  emailRecipients.value.filter((recipient) => Boolean(Number(recipient.is_active))).length
+);
 
 const totalProducts = computed(() => products.value.length);
 const activeProducts = computed(() => products.value.filter((product) => Number(product.is_active ?? 1) === 1).length);
@@ -31,6 +51,15 @@ const newOrderCount = computed(() => Number(notificationData.value?.count || 0))
 const recentPaidOrders = computed(() => notificationData.value?.recent || []);
 const recentOrders = computed(() => orders.value.slice(0, 6));
 const isMarkingSeen = ref(false);
+const isSavingEmailRecipient = ref(false);
+const deletingEmailRecipientId = ref<number | null>(null);
+const emailRecipientForm = reactive({
+  id: null as number | null,
+  name: "",
+  email: "",
+  is_active: true,
+});
+const isEditingEmailRecipient = computed(() => Boolean(emailRecipientForm.id));
 
 const orderSummary = computed(() => {
   const paidOrders = orders.value.filter((order) => order.payment_status === "success");
@@ -160,7 +189,120 @@ async function markNotificationsSeen() {
 }
 
 async function refreshDashboard() {
-  await Promise.all([refreshOrders(), refreshNotifications()]);
+  await Promise.all([refreshOrders(), refreshNotifications(), refreshEmailRecipients()]);
+}
+
+function resetEmailRecipientForm() {
+  emailRecipientForm.id = null;
+  emailRecipientForm.name = "";
+  emailRecipientForm.email = "";
+  emailRecipientForm.is_active = true;
+}
+
+function editEmailRecipient(recipient: AdminEmailRecipient) {
+  emailRecipientForm.id = recipient.id;
+  emailRecipientForm.name = recipient.name || "";
+  emailRecipientForm.email = recipient.email || "";
+  emailRecipientForm.is_active = Boolean(Number(recipient.is_active));
+}
+
+function emailErrorMessage(error: any, fallback: string) {
+  return error?.data?.statusMessage || error?.statusMessage || error?.message || fallback;
+}
+
+async function saveEmailRecipient() {
+  if (!emailRecipientForm.email.trim()) {
+    toast.add({
+      title: "กรุณากรอกอีเมล",
+      color: "warning",
+      icon: "i-lucide-mail-warning",
+    });
+    return;
+  }
+
+  isSavingEmailRecipient.value = true;
+  try {
+    const body = {
+      name: emailRecipientForm.name.trim(),
+      email: emailRecipientForm.email.trim(),
+      is_active: emailRecipientForm.is_active,
+    };
+
+    if (emailRecipientForm.id) {
+      await $authFetch(`/api/admin/email-recipients/${emailRecipientForm.id}`, {
+        method: "PUT",
+        body,
+      });
+    } else {
+      await $authFetch("/api/admin/email-recipients", {
+        method: "POST",
+        body,
+      });
+    }
+
+    toast.add({
+      title: emailRecipientForm.id ? "บันทึกผู้รับอีเมลแล้ว" : "เพิ่มผู้รับอีเมลแล้ว",
+      color: "success",
+      icon: "i-lucide-check-circle",
+    });
+    resetEmailRecipientForm();
+    await refreshEmailRecipients();
+  } catch (error: any) {
+    toast.add({
+      title: "บันทึกผู้รับอีเมลไม่สำเร็จ",
+      description: emailErrorMessage(error, "กรุณาลองใหม่อีกครั้ง"),
+      color: "error",
+      icon: "i-lucide-circle-alert",
+    });
+  } finally {
+    isSavingEmailRecipient.value = false;
+  }
+}
+
+async function toggleEmailRecipient(recipient: AdminEmailRecipient, isActive: boolean) {
+  try {
+    await $authFetch(`/api/admin/email-recipients/${recipient.id}`, {
+      method: "PUT",
+      body: {
+        name: recipient.name || "",
+        email: recipient.email,
+        is_active: isActive,
+      },
+    });
+    await refreshEmailRecipients();
+  } catch (error: any) {
+    toast.add({
+      title: "เปลี่ยนสถานะผู้รับอีเมลไม่สำเร็จ",
+      description: emailErrorMessage(error, "กรุณาลองใหม่อีกครั้ง"),
+      color: "error",
+      icon: "i-lucide-circle-alert",
+    });
+  }
+}
+
+async function deleteEmailRecipient(recipient: AdminEmailRecipient) {
+  if (!window.confirm(`ลบผู้รับอีเมล ${recipient.email} ใช่ไหม?`)) return;
+
+  deletingEmailRecipientId.value = recipient.id;
+  try {
+    await $authFetch(`/api/admin/email-recipients/${recipient.id}`, { method: "DELETE" });
+    if (emailRecipientForm.id === recipient.id) resetEmailRecipientForm();
+    toast.add({
+      title: "ลบผู้รับอีเมลแล้ว",
+      color: "success",
+      icon: "i-lucide-trash-2",
+    });
+    await refreshEmailRecipients();
+  } catch (error: any) {
+    toast.add({
+      title: "ลบผู้รับอีเมลไม่สำเร็จ",
+      description: emailErrorMessage(error, "กรุณาลองใหม่อีกครั้ง"),
+      color: "error",
+      icon: "i-lucide-circle-alert",
+    });
+  } finally {
+    deletingEmailRecipientId.value = null;
+  }
 }
 </script>
 
@@ -256,6 +398,162 @@ async function refreshDashboard() {
             </div>
           </UCard>
         </div>
+
+        <UCard>
+          <template #header>
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 class="font-semibold text-default">ผู้รับอีเมลแอดมิน</h2>
+                <p class="text-sm text-muted">
+                  กำหนดว่าเมื่อมีคำสั่งซื้อที่ชำระเงินสำเร็จ หรือมีข้อความติดต่อจากลูกค้า ระบบต้องส่งอีเมลหาใครบ้าง
+                </p>
+              </div>
+              <UBadge
+                :label="`${activeEmailRecipientCount} คนกำลังรับอีเมล`"
+                :color="activeEmailRecipientCount ? 'success' : 'warning'"
+                variant="subtle"
+              />
+            </div>
+          </template>
+
+          <div class="grid gap-5 xl:grid-cols-[0.85fr_1.15fr]">
+            <form class="rounded-xl border border-muted bg-elevated/40 p-4" @submit.prevent="saveEmailRecipient">
+              <div class="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <h3 class="font-semibold text-default">
+                    {{ isEditingEmailRecipient ? "แก้ไขผู้รับอีเมล" : "เพิ่มผู้รับอีเมล" }}
+                  </h3>
+                  <p class="text-sm text-muted">ใช้สำหรับเมลแจ้งเตือนฝั่ง admin</p>
+                </div>
+                <UButton
+                  v-if="isEditingEmailRecipient"
+                  icon="i-lucide-x"
+                  label="ยกเลิกแก้ไข"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  @click="resetEmailRecipientForm"
+                />
+              </div>
+
+              <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                <UFormField label="ชื่อ">
+                  <UInput
+                    v-model="emailRecipientForm.name"
+                    icon="i-lucide-user"
+                    placeholder="เช่น Witawat"
+                    size="lg"
+                    class="w-full"
+                  />
+                </UFormField>
+
+                <UFormField label="อีเมล" required>
+                  <UInput
+                    v-model="emailRecipientForm.email"
+                    icon="i-lucide-mail"
+                    type="email"
+                    placeholder="admin@example.com"
+                    size="lg"
+                    class="w-full"
+                  />
+                </UFormField>
+              </div>
+
+              <button
+                type="button"
+                class="mt-4 flex w-full items-center justify-between gap-4 rounded-xl border border-muted bg-default p-4 text-left"
+                @click="emailRecipientForm.is_active = !emailRecipientForm.is_active"
+              >
+                <div>
+                  <p class="font-semibold text-default">
+                    {{ emailRecipientForm.is_active ? "เปิดรับอีเมล" : "ปิดรับอีเมล" }}
+                  </p>
+                  <p class="text-sm text-muted">ปิดไว้ได้ถ้าไม่ต้องการให้คนนี้รับอีเมลแจ้งเตือน</p>
+                </div>
+                <USwitch v-model="emailRecipientForm.is_active" @click.stop />
+              </button>
+
+              <UButton
+                type="submit"
+                :label="isEditingEmailRecipient ? 'บันทึกการแก้ไข' : 'เพิ่มผู้รับอีเมล'"
+                :icon="isEditingEmailRecipient ? 'i-lucide-save' : 'i-lucide-plus'"
+                color="primary"
+                block
+                class="mt-4"
+                :loading="isSavingEmailRecipient"
+              />
+            </form>
+
+            <div class="rounded-xl border border-muted bg-default">
+              <div class="flex items-center justify-between gap-3 border-b border-muted px-4 py-3">
+                <div>
+                  <h3 class="font-semibold text-default">รายชื่อผู้รับ</h3>
+                  <p class="text-sm text-muted">รายชื่อที่เปิดใช้งานจะได้รับเมลพร้อมกัน</p>
+                </div>
+                <UButton
+                  icon="i-lucide-refresh-cw"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  :loading="loadingEmailRecipients"
+                  @click="refreshEmailRecipients"
+                />
+              </div>
+
+              <div v-if="loadingEmailRecipients" class="space-y-3 p-4" aria-hidden="true">
+                <USkeleton v-for="i in 3" :key="`admin-email-skeleton-${i}`" class="h-16 rounded-xl" />
+              </div>
+
+              <div v-else-if="emailRecipients.length" class="divide-y divide-muted">
+                <div
+                  v-for="recipient in emailRecipients"
+                  :key="recipient.id"
+                  class="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <p class="truncate font-semibold text-default">{{ recipient.name || "Admin" }}</p>
+                      <UBadge
+                        :label="Number(recipient.is_active) ? 'รับอีเมล' : 'ปิดอยู่'"
+                        :color="Number(recipient.is_active) ? 'success' : 'neutral'"
+                        variant="subtle"
+                      />
+                    </div>
+                    <p class="truncate text-sm text-muted">{{ recipient.email }}</p>
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <USwitch
+                      :model-value="Boolean(Number(recipient.is_active))"
+                      @update:model-value="(value) => toggleEmailRecipient(recipient, Boolean(value))"
+                    />
+                    <UButton
+                      icon="i-lucide-pencil"
+                      color="neutral"
+                      variant="ghost"
+                      size="sm"
+                      @click="editEmailRecipient(recipient)"
+                    />
+                    <UButton
+                      icon="i-lucide-trash-2"
+                      color="error"
+                      variant="ghost"
+                      size="sm"
+                      :loading="deletingEmailRecipientId === recipient.id"
+                      @click="deleteEmailRecipient(recipient)"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="p-8 text-center">
+                <UIcon name="i-lucide-mails" class="mx-auto mb-3 size-9 text-muted" />
+                <p class="font-medium text-default">ยังไม่มีผู้รับอีเมลแอดมิน</p>
+                <p class="text-sm text-muted">เพิ่มอีเมลอย่างน้อย 1 คน เพื่อรับแจ้งเตือนคำสั่งซื้อใหม่</p>
+              </div>
+            </div>
+          </div>
+        </UCard>
 
         <div class="grid grid-cols-1 gap-4 xl:grid-cols-[1.25fr_0.75fr]">
           <UCard>
