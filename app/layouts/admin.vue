@@ -24,6 +24,10 @@ const items = computed<NavigationMenuItem[]>(() => [{
   label: 'Orders',
   icon: 'i-lucide-receipt-text',
   to: '/Admin/Orders'
+}, {
+  label: 'Admins',
+  icon: 'i-lucide-shield-check',
+  to: '/Admin/Admins'
 }])
 </script>
 
