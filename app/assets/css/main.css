@@ -14,6 +14,7 @@ body {
   font-family: var(--font-sans);
   background-color: #eff5e9;
   color: black;
+  top: 0 !important;
 }
 
 button,

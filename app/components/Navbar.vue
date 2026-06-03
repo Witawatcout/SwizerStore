@@ -12,7 +12,16 @@ const isLoggedIn = computed(() => Boolean(auth.token))
 const isAdmin = computed(() => auth.user?.role === 'admin')
 const isNavVisible = ref(true)
 const lastScrollY = ref(0)
+const { $swizerTranslate } = useNuxtApp() as any
 let scrollTicking = false
+
+const activeLanguage = computed(() => $swizerTranslate?.language?.value || 'th')
+const translationLoading = computed(() => Boolean($swizerTranslate?.loading?.value))
+const translationFlagSrc = computed(() => (activeLanguage.value === 'en' ? '/flags/th.svg' : '/flags/gb.svg'))
+const translationFlagAlt = computed(() => (activeLanguage.value === 'en' ? 'ธงชาติไทย' : 'ธงชาติอังกฤษ'))
+const translationButtonTooltip = computed(() =>
+  activeLanguage.value === 'en' ? 'กลับเป็นภาษาไทย' : 'แปลเป็นภาษาอังกฤษ',
+)
 
 const navShellStyle = computed(() => ({
   transform: isNavVisible.value ? 'translate3d(0, 0, 0)' : 'translate3d(0, -100%, 0)',
@@ -91,6 +100,10 @@ function signOut() {
   navigateTo('/')
 }
 
+function toggleTranslation() {
+  $swizerTranslate?.toggleLanguage()
+}
+
 function updateNavbarVisibility() {
   const currentY = window.scrollY || 0
   const diff = currentY - lastScrollY.value
@@ -160,6 +173,24 @@ watch(
 
     <template #right>
       <div class="flex items-center gap-2 md:gap-3 lg:gap-4">
+        <UTooltip :text="translationButtonTooltip">
+          <button
+            class="notranslate hidden size-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] p-0 text-white transition-colors hover:bg-white/10 sm:inline-flex lg:size-12"
+            translate="no"
+            aria-label="เปลี่ยนภาษา"
+            @click="toggleTranslation"
+          >
+            <Icon v-if="translationLoading" name="i-lucide-loader-circle" class="size-5 animate-spin" />
+            <img
+              v-else
+              :src="translationFlagSrc"
+              :alt="translationFlagAlt"
+              class="block h-5 w-7 rounded-[3px] object-cover shadow-sm ring-1 ring-white/20 lg:h-6 lg:w-8"
+              translate="no"
+            />
+          </button>
+        </UTooltip>
+
         <UTooltip v-if="isAdmin" text="Admin">
           <UButton
             to="/Admin"
@@ -234,6 +265,18 @@ watch(
         />
 
         <div class="border-t border-neutral-200 pt-4">
+          <UButton
+            :label="translationButtonTooltip"
+            :avatar="{ src: translationFlagSrc, alt: translationFlagAlt }"
+            color="neutral"
+            variant="soft"
+            block
+            class="notranslate mb-3"
+            translate="no"
+            :loading="translationLoading"
+            @click="toggleTranslation"
+          />
+
           <div v-if="isLoggedIn" class="space-y-3">
             <div class="text-sm text-neutral-500">
               เข้าสู่ระบบด้วย
