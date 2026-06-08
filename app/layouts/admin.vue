@@ -44,7 +44,7 @@ const items = computed<NavigationMenuItem[]>(() => {
 </script>
 
 <template>
-  <UDashboardGroup>
+  <UDashboardGroup class="admin-shell">
     <UDashboardSidebar collapsible resizable>
       <template #header="{ collapsed }">
         <div class="flex items-center gap-2 px-2 py-1">

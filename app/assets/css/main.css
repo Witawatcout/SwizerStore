@@ -100,6 +100,7 @@ select {
     opacity: 0;
     transform: translate3d(0, 40px, 0);
   }
+
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0);
@@ -114,4 +115,46 @@ select {
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform, opacity;
   backface-visibility: hidden;
+}
+
+/* Admin readability */
+.admin-shell {
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.admin-shell .text-xs {
+  font-size: 0.875rem;
+  line-height: 1.45rem;
+}
+
+.admin-shell .text-sm {
+  font-size: 1rem;
+  line-height: 1.65rem;
+}
+
+.admin-shell .text-base {
+  font-size: 1.125rem;
+  line-height: 1.85rem;
+}
+
+.admin-shell .text-lg {
+  font-size: 1.3125rem;
+  line-height: 2rem;
+}
+
+.admin-shell .text-xl {
+  font-size: 1.5rem;
+  line-height: 2.15rem;
+}
+
+.admin-shell input,
+.admin-shell textarea,
+.admin-shell select,
+.admin-shell button {
+  font-size: 1rem;
+}
+
+.admin-shell table {
+  font-size: 1rem;
 }
