@@ -3,7 +3,8 @@
     <main class="w-full">
 
       <!-- Hero Section -->
-      <section class="relative h-[80vh] min-h-[600px] max-h-[900px] w-full flex items-center justify-center overflow-hidden fade-in-up"
+      <section
+        class="relative h-[80vh] min-h-[600px] max-h-[900px] w-full flex items-center justify-center overflow-hidden fade-in-up"
         style="animation-duration: 1s;">
         <!-- Background Image Parallax -->
         <div class="absolute inset-0 z-0 bg-neutral-900">
@@ -32,7 +33,9 @@
             </p>
             <NuxtLink to="/products"
               class="w-full sm:w-auto bg-primary-600 text-white font-bold text-lg px-12 py-5 rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary-600/30 hover:bg-primary-500 whitespace-nowrap truncate inline-block text-center mt-4 group">
-              ดูผลิตภัณฑ์ของเรา <Icon name="mynaui:arrow-long-right-solid" class="group-hover:translate-x-1 transition-transform inline-block ml-1" />
+              ดูผลิตภัณฑ์ของเรา
+              <Icon name="mynaui:arrow-long-right-solid"
+                class="group-hover:translate-x-1 transition-transform inline-block ml-1" />
             </NuxtLink>
           </div>
         </div>
@@ -54,13 +57,16 @@
             </h2>
             <div class="space-y-6 text-neutral-600 text-lg leading-relaxed max-w-2xl font-medium">
               <p>
-                เพราะเราเชื่อว่าการคัดสรรสิ่งที่ดีที่สุด คือคำมั่นสัญญาที่เราจะส่งมอบของขวัญอันทรงคุณค่าให้กับผู้บริโภคและคนรอบข้างที่คุณรัก
+                เพราะเราเชื่อว่าการคัดสรรสิ่งที่ดีที่สุด
+                คือคำมั่นสัญญาที่เราจะส่งมอบของขวัญอันทรงคุณค่าให้กับผู้บริโภคและคนรอบข้างที่คุณรัก
               </p>
               <p>
-                ผลิตภัณฑ์ของเราเริ่มต้นจากการคัดสรรวัตถุดิบที่มีคุณภาพสูงสุดจากแหล่งกำเนิดตามธรรมชาติ ผ่านกรรมวิธีการผลิตและการแปรรูปน้อยที่สุด เพื่อรักษาสารอาหารที่สำคัญไว้อย่างครบถ้วน
+                ผลิตภัณฑ์ของเราเริ่มต้นจากการคัดสรรวัตถุดิบที่มีคุณภาพสูงสุดจากแหล่งกำเนิดตามธรรมชาติ
+                ผ่านกรรมวิธีการผลิตและการแปรรูปน้อยที่สุด เพื่อรักษาสารอาหารที่สำคัญไว้อย่างครบถ้วน
               </p>
               <p>
-                เราใส่ใจในทุกขั้นตอนการผลิตที่ได้มาตรฐานและปลอดภัย นำเสนอในรูปแบบที่ทานง่าย ตอบโจทย์ไลฟ์สไตล์คนยุคใหม่ ให้คุณสามารถดูแลสุขภาพของคุณและคนในครอบครัวได้อย่างยั่งยืน
+                เราใส่ใจในทุกขั้นตอนการผลิตที่ได้มาตรฐานและปลอดภัย นำเสนอในรูปแบบที่ทานง่าย ตอบโจทย์ไลฟ์สไตล์คนยุคใหม่
+                ให้คุณสามารถดูแลสุขภาพของคุณและคนในครอบครัวได้อย่างยั่งยืน
               </p>
             </div>
           </div>
@@ -119,17 +125,23 @@
 
         <div class="max-w-screen-2xl mx-auto px-6 md:px-12 lg:px-20 relative z-10">
           <div class="text-center mb-20 fade-in-up" style="animation-delay: 400ms;">
-             <h2 class="font-headline text-5xl md:text-7xl font-black text-white mb-6 tracking-tight drop-shadow-lg">Where to Buy</h2>
-             <p class="text-neutral-300 max-w-2xl mx-auto text-lg md:text-xl font-medium leading-relaxed">
-               คุณสามารถหาซื้อผลิตภัณฑ์ Swizer Superfoods ได้ผ่านช่องทางออนไลน์ และร้านค้าชั้นนำทั่วประเทศ
-             </p>
+            <h2 class="font-headline text-5xl md:text-7xl font-black text-white mb-6 tracking-tight drop-shadow-lg">
+              Where to Buy</h2>
+            <p class="text-neutral-300 max-w-2xl mx-auto text-lg md:text-xl font-medium leading-relaxed">
+              คุณสามารถหาซื้อผลิตภัณฑ์ Swizer Superfoods ได้ผ่านช่องทางออนไลน์ และร้านค้าชั้นนำทั่วประเทศ
+            </p>
           </div>
 
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 items-center justify-center fade-in-up" style="animation-delay: 500ms;">
-            <div v-for="(logo, idx) in partnerLogos" :key="idx" 
-                 class="bg-white rounded-[2rem] p-6 lg:p-8 hover:shadow-[0_20px_40px_rgba(0,0,0,0.6)] transition-all duration-500 flex items-center justify-center aspect-[4/3] group relative overflow-hidden cursor-pointer transform-gpu hover:-translate-y-2">
-              <div class="absolute inset-0 bg-primary-500/0 group-hover:bg-primary-500/5 transition-colors duration-500"></div>
-              <img :src="logo.src" :alt="logo.alt" class="w-full h-full object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-500 will-change-transform" />
+          <div
+            class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 items-center justify-center fade-in-up"
+            style="animation-delay: 500ms;">
+            <div v-for="(logo, idx) in partnerLogos" :key="idx"
+              class="bg-white rounded-[2rem] p-6 lg:p-8 hover:shadow-[0_20px_40px_rgba(0,0,0,0.6)] transition-all duration-500 flex items-center justify-center aspect-[4/3] group relative overflow-hidden cursor-pointer transform-gpu hover:-translate-y-2">
+              <div
+                class="absolute inset-0 bg-primary-500/0 group-hover:bg-primary-500/5 transition-colors duration-500">
+              </div>
+              <img :src="logo.src" :alt="logo.alt"
+                class="w-full h-full object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-500 will-change-transform" />
             </div>
           </div>
         </div>
@@ -217,7 +229,9 @@
             class="flex flex-col sm:flex-row gap-5 justify-center pt-8 items-center w-full max-w-lg mx-auto sm:max-w-none">
             <NuxtLink to="/products"
               class="w-full sm:w-auto bg-primary-600 text-white font-bold text-lg px-12 py-5 rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary-600/30 hover:bg-primary-500 whitespace-nowrap truncate inline-block text-center mt-2 group">
-              เลือกซื้อผลิตภัณฑ์ <Icon name="mynaui:arrow-long-right-solid" class="group-hover:translate-x-1 transition-transform inline-block ml-1" />
+              เลือกซื้อผลิตภัณฑ์
+              <Icon name="mynaui:arrow-long-right-solid"
+                class="group-hover:translate-x-1 transition-transform inline-block ml-1" />
             </NuxtLink>
             <NuxtLink to="/contact"
               class="w-full sm:w-auto bg-white border-2 border-neutral-200 text-neutral-800 font-bold text-lg px-12 py-5 rounded-full hover:bg-neutral-50 hover:border-neutral-300 hover:scale-105 active:scale-95 transition-all whitespace-nowrap truncate shadow-sm mt-2 text-center inline-block">
@@ -248,13 +262,13 @@ import Product1 from '@@/public/Home/Untitled-6.jpg'
 import Product2 from '@@/public/Home/Untitled-3.jpg'
 import Product3 from '@@/public/Home/Untitled-4.jpg'
 const partnerLogos = [
-  { src: TopLogo, alt: 'Tops Supermarket' },
-  { src: Gourmet, alt: 'Gourmet Market' },
-  { src: FoodlandLogo, alt: 'Foodland' },
-  { src: TokyuDepartmentStoreLogo, alt: 'Tokyu Department Store' },
-  { src: Baimiang, alt: 'Baimiang' },
-  { src: HealthyPlanet, alt: 'Healthy Planet' },
-  { src: Watsons_logotype, alt: 'Watsons' },
+  // { src: TopLogo, alt: 'Tops Supermarket' },
+  // { src: Gourmet, alt: 'Gourmet Market' },
+  // { src: FoodlandLogo, alt: 'Foodland' },
+  // { src: TokyuDepartmentStoreLogo, alt: 'Tokyu Department Store' },
+  // { src: Baimiang, alt: 'Baimiang' },
+  // { src: HealthyPlanet, alt: 'Healthy Planet' },
+  // { src: Watsons_logotype, alt: 'Watsons' },
   { src: Shopee, alt: 'Shopee' },
   { src: Lazada, alt: 'Lazada' },
 ]
