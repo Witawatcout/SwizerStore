@@ -1,8 +1,10 @@
 import { requireSuperAdmin } from "~~/server/utils/auth";
 import { query } from "~~/server/utils/db";
+import { ensureOrderTrackingSchema } from "~~/server/utils/orderTracking";
 
 export default defineEventHandler(async (event) => {
   requireSuperAdmin(event);
+  await ensureOrderTrackingSchema();
 
   const filters = getQuery(event);
   const where: string[] = [];
@@ -25,6 +27,7 @@ export default defineEventHandler(async (event) => {
     `SELECT
        o.id,
        o.status,
+       o.tracking_number,
        o.payment_method,
        o.payment_status,
        o.subtotal,

@@ -13,6 +13,7 @@ const selectedDate = ref("");
 const selectedOrder = ref<any>(null);
 const isDetailOpen = ref(false);
 const isSendingEmail = ref(false);
+const trackingNumberForm = ref("");
 const page = ref(1);
 const pageSize = ref(10);
 
@@ -67,6 +68,7 @@ const columns: TableColumn<any>[] = [
   { accessorKey: "payment_method", header: "ช่องทางชำระเงิน" },
   { accessorKey: "payment_status", header: "สถานะชำระเงิน" },
   { accessorKey: "status", header: "สถานะคำสั่งซื้อ" },
+  { accessorKey: "tracking_number", header: "เลขพัสดุ" },
   { accessorKey: "total", header: "ยอดรวม" },
   { accessorKey: "created_at", header: "วันที่สั่งซื้อ" },
   { id: "actions", header: "" },
@@ -132,15 +134,33 @@ function pageNumbers() {
 
 async function openDetail(id: string) {
   selectedOrder.value = await $authFetch(`/api/admin/orders/${id}`);
+  trackingNumberForm.value = selectedOrder.value?.tracking_number || "";
   isDetailOpen.value = true;
 }
 
-async function updateStatus(id: string, nextStatus: string) {
+async function updateStatus(id: string, nextStatus: string, trackingNumber?: string) {
   try {
-    await $authFetch(`/api/admin/orders/${id}/status`, { method: "PUT", body: { status: nextStatus } });
+    let nextTrackingNumber = trackingNumber;
+    if (nextStatus === "shipped" && nextTrackingNumber === undefined) {
+      const currentTrackingNumber = selectedOrder.value?.id === id ? selectedOrder.value?.tracking_number || "" : "";
+      const prompted = window.prompt("กรอกเลขพัสดุ/เลขติดตามสำหรับคำสั่งซื้อนี้", currentTrackingNumber);
+      if (prompted === null) return;
+      nextTrackingNumber = prompted;
+    }
+
+    const body: { status: string; tracking_number?: string } = { status: nextStatus };
+    if (nextTrackingNumber !== undefined) body.tracking_number = nextTrackingNumber;
+
+    const res = await $authFetch<any>(`/api/admin/orders/${id}/status`, { method: "PUT", body });
     toast.add({ title: "อัปเดตสถานะแล้ว", description: statusLabel(nextStatus), color: "success", icon: "i-lucide-check" });
     await refresh();
-    if (selectedOrder.value?.id === id) selectedOrder.value.status = nextStatus;
+    if (selectedOrder.value?.id === id) {
+      selectedOrder.value.status = nextStatus;
+      if (nextTrackingNumber !== undefined) {
+        selectedOrder.value.tracking_number = res.tracking_number ?? nextTrackingNumber;
+        trackingNumberForm.value = selectedOrder.value.tracking_number || "";
+      }
+    }
   } catch (err: any) {
     toast.add({
       title: "อัปเดตสถานะไม่สำเร็จ",
@@ -150,7 +170,6 @@ async function updateStatus(id: string, nextStatus: string) {
     });
   }
 }
-
 async function verifyPayment(id: string) {
   try {
     const res = await $authFetch<any>(`/api/admin/orders/${id}/verify-payment`, { method: "POST" });
@@ -163,6 +182,7 @@ async function verifyPayment(id: string) {
     await refresh();
     if (selectedOrder.value?.id === id) {
       selectedOrder.value = await $authFetch(`/api/admin/orders/${id}`);
+      trackingNumberForm.value = selectedOrder.value?.tracking_number || "";
     }
   } catch (err: any) {
     toast.add({
@@ -185,6 +205,7 @@ async function resendOrderEmail(id: string) {
       icon: res.sent ? "i-lucide-mail-check" : "i-lucide-mail-warning",
     });
     selectedOrder.value = await $authFetch(`/api/admin/orders/${id}`);
+    trackingNumberForm.value = selectedOrder.value?.tracking_number || "";
   } catch (err: any) {
     toast.add({
       title: "ส่งอีเมลไม่สำเร็จ",
@@ -260,6 +281,11 @@ watch(
               </div>
             </template>
 
+            <template #tracking_number-cell="{ row }">
+              <span v-if="row.original.tracking_number" class="text-sm font-semibold text-default">{{ row.original.tracking_number }}</span>
+              <span v-else class="text-sm text-muted">-</span>
+            </template>
+
             <template #total-cell="{ row }">
               <span class="font-bold">{{ formatPrice(row.original.total) }}</span>
             </template>
@@ -320,7 +346,23 @@ watch(
               v-model="selectedOrder.status"
               :items="editableStatusItems"
               class="mt-2"
-              @update:model-value="updateStatus(selectedOrder.id, String($event))"
+              @update:model-value="updateStatus(selectedOrder.id, String($event), trackingNumberForm)"
+            />
+            <UFormField label="เลขพัสดุ / เลขติดตาม" class="mt-4">
+              <UInput
+                v-model="trackingNumberForm"
+                icon="i-lucide-truck"
+                placeholder="เช่น EMS123456789TH"
+              />
+            </UFormField>
+            <UButton
+              class="mt-3"
+              icon="i-lucide-save"
+              label="บันทึกเลขพัสดุ"
+              color="neutral"
+              variant="soft"
+              block
+              @click="updateStatus(selectedOrder.id, selectedOrder.status, trackingNumberForm)"
             />
           </div>
         </div>

@@ -1,8 +1,10 @@
 import { requireAuth } from "~~/server/utils/auth";
 import { query } from "~~/server/utils/db";
+import { ensureOrderTrackingSchema } from "~~/server/utils/orderTracking";
 
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
+  await ensureOrderTrackingSchema();
 
   if (!auth.id) {
     throw createError({ statusCode: 401, statusMessage: "Unauthorized" });
@@ -12,6 +14,7 @@ export default defineEventHandler(async (event) => {
     `SELECT
        o.id,
        o.status,
+       o.tracking_number,
        o.payment_method,
        o.payment_status,
        o.promptpay_qr_url,

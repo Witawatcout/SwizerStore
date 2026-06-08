@@ -353,6 +353,10 @@ onMounted(() => {
             <div class="mb-5 rounded-lg bg-[#f7fbf2] p-4">
               <p class="font-black text-neutral-950">{{ orderHeadline(order) }}</p>
               <p class="mt-1 text-sm leading-6 text-neutral-600">{{ orderSubtext(order) }}</p>
+              <p v-if="order.tracking_number" class="mt-3 inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-bold text-neutral-900 ring-1 ring-neutral-200">
+                <UIcon name="i-lucide-truck" class="size-4 text-primary-700" />
+                เลขพัสดุ: {{ order.tracking_number }}
+              </p>
               <p v-if="canShowPromptPayQr(order)" class="mt-2 inline-flex items-center gap-1 text-sm font-bold text-warning">
                 <UIcon name="i-lucide-clock" class="size-4" />
                 QR พร้อมเพย์เหลือเวลา {{ remainingText(order) }}

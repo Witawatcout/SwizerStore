@@ -1,8 +1,10 @@
 import { requireSuperAdmin } from "~~/server/utils/auth";
 import { query } from "~~/server/utils/db";
+import { ensureOrderTrackingSchema } from "~~/server/utils/orderTracking";
 
 export default defineEventHandler(async (event) => {
   requireSuperAdmin(event);
+  await ensureOrderTrackingSchema();
 
   const id = decodeURIComponent(getRouterParam(event, "id") || "");
   const rows = await query<any>(

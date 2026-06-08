@@ -1,10 +1,12 @@
 import { getOptionalAuth } from "~~/server/utils/auth";
 import { isSuperAdminRole } from "~~/server/utils/adminAccess";
 import { query } from "~~/server/utils/db";
+import { ensureOrderTrackingSchema } from "~~/server/utils/orderTracking";
 
 export default defineEventHandler(async (event) => {
   const id = decodeURIComponent(getRouterParam(event, "id") || "");
   const auth = getOptionalAuth(event);
+  await ensureOrderTrackingSchema();
 
   const rows = await query<any>(
     `SELECT
@@ -39,6 +41,7 @@ export default defineEventHandler(async (event) => {
   const publicOrder = {
     id: order.id,
     status: order.status,
+    tracking_number: order.tracking_number,
     payment_method: order.payment_method,
     payment_status: order.payment_status,
     subtotal: Number(order.subtotal),

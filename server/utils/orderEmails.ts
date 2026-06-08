@@ -1,10 +1,12 @@
 import { query } from "~~/server/utils/db";
 import { sendMail } from "~~/server/utils/email";
 import { getActiveAdminEmailAddresses } from "~~/server/utils/adminEmailRecipients";
+import { ensureOrderTrackingSchema } from "~~/server/utils/orderTracking";
 
 interface OrderEmailRow {
   id: string;
   status: string;
+  tracking_number?: string | null;
   payment_status: string;
   payment_method: string;
   subtotal: number | string;
@@ -137,6 +139,7 @@ function buildPlainText(order: OrderEmailRow, items: OrderItemRow[], copy: Email
     `ช่องทางชำระเงิน: ${paymentMethodLabel(order.payment_method)}`,
     `สถานะการชำระเงิน: ${paymentStatusLabel(order.payment_status)}`,
     `สถานะคำสั่งซื้อ: ${orderStatusLabel(order.status)}`,
+    order.tracking_number ? `เลขพัสดุ/เลขติดตาม: ${order.tracking_number}` : "",
     "",
     "รายการสินค้า",
     itemLines,
@@ -239,6 +242,14 @@ function buildEmail(order: OrderEmailRow, items: OrderItemRow[], copy: EmailCopy
                       <span style="display:inline-block;${statusBadgeStyle(order.status)}border-radius:999px;padding:4px 10px;font-size:12px;font-weight:800;">${escapeHtml(orderStatusLabel(order.status))}</span>
                     </td>
                   </tr>
+                  ${
+                    order.tracking_number
+                      ? `<tr>
+                          <td style="padding:8px 0;color:#667085;">เลขพัสดุ/เลขติดตาม</td>
+                          <td style="padding:8px 0;text-align:right;font-weight:800;color:#17210f;">${escapeHtml(order.tracking_number)}</td>
+                        </tr>`
+                      : ""
+                  }
                 </table>
 
                 <h2 style="font-size:18px;margin:24px 0 8px;color:#17210f;">รายการสินค้า</h2>
@@ -300,11 +311,14 @@ export async function sendOrderPaidEmails(
   orderId: string,
   options: { force?: boolean; purpose?: "payment" | "status_update" } = {}
 ) {
+  await ensureOrderTrackingSchema();
+
   const orders = await query<OrderEmailRow>(
-    `SELECT
-       o.id,
-       o.status,
-       o.payment_status,
+     `SELECT
+        o.id,
+        o.status,
+        o.tracking_number,
+        o.payment_status,
        o.payment_method,
        o.subtotal,
        o.shipping_fee,

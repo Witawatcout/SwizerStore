@@ -141,6 +141,15 @@ onMounted(() => {
           </div>
         </div>
 
+        <UAlert
+          v-if="order?.tracking_number"
+          color="primary"
+          variant="soft"
+          icon="i-lucide-truck"
+          title="เลขพัสดุ / เลขติดตาม"
+          :description="order.tracking_number"
+        />
+
         <div class="divide-y divide-neutral-100 rounded-lg border border-neutral-100">
           <div v-for="item in order?.items || []" :key="item.product_id" class="flex justify-between gap-3 p-4">
             <span>{{ item.product_name }} x {{ item.quantity }}</span>
