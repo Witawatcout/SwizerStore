@@ -6,7 +6,8 @@ useHead({
 const { data: products, status } = useLazyFetch<any[]>("/api/products");
 const { data: categoriesData, status: categoriesStatus } = useLazyFetch<any[]>("/api/categories");
 
-const selectedCategory = ref<string>("all");
+const route = useRoute();
+const selectedCategory = ref<string>(typeof route.query.category === "string" ? route.query.category : "all");
 const searchText = ref("");
 const sortBy = ref("name");
 
@@ -101,6 +102,13 @@ function clearFilters() {
   searchText.value = "";
   sortBy.value = "name";
 }
+
+watch(
+  () => route.query.category,
+  (category) => {
+    selectedCategory.value = typeof category === "string" ? category : "all";
+  }
+);
 </script>
 
 <template>

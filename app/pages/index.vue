@@ -90,14 +90,67 @@
 
         </div>
 
-        <div v-if="isHomeLoading" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-12">
-          <ProductCardSkeleton v-for="i in 3" :key="`home-product-skeleton-${i}`" class="fade-in-up"
-            :style="{ animationDelay: `${100 + i * 80}ms`, animationDuration: '0.8s' }" />
+        <div v-if="isProductsSectionLoading" class="space-y-20" aria-hidden="true">
+          <div v-for="section in 2" :key="`home-category-section-skeleton-${section}`" class="space-y-8">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div class="space-y-3">
+                <USkeleton class="h-5 w-28 rounded-full" />
+                <USkeleton class="h-10 w-56 rounded-full" />
+              </div>
+              <USkeleton class="h-11 w-36 rounded-full" />
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-12">
+              <ProductCardSkeleton v-for="i in 3" :key="`home-product-skeleton-${section}-${i}`" class="fade-in-up"
+                :style="{ animationDelay: `${100 + i * 80}ms`, animationDuration: '0.8s' }" />
+            </div>
+          </div>
         </div>
 
-        <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-12">
-          <ProductCard v-for="(product, idx) in products" :key="product.id" :product="product" class="fade-in-up"
-            :style="{ animationDelay: `${100 + idx * 80}ms`, animationDuration: '0.8s' }" />
+        <div v-else-if="homeCategorySections.length" class="space-y-20">
+          <section
+            v-for="(section, sectionIndex) in homeCategorySections"
+            :key="section.category.id"
+            class="space-y-8 fade-in-up"
+            :style="{ animationDelay: `${sectionIndex * 80}ms`, animationDuration: '0.8s' }"
+          >
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <span class="mb-2 block text-xs font-black uppercase tracking-[0.22em] text-primary-700">
+                  {{ section.total }} products
+                </span>
+                <h3 class="font-headline text-3xl md:text-4xl font-black text-neutral-950 tracking-tight">
+                  {{ section.category.name }}
+                </h3>
+              </div>
+              <NuxtLink
+                :to="{ path: '/products', query: { category: String(section.category.id) } }"
+                class="inline-flex items-center gap-2 self-start rounded-full border border-primary-200 bg-white px-5 py-3 text-sm font-black text-neutral-800 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary-400 hover:bg-primary-50 hover:text-primary-800 sm:self-auto"
+              >
+                ดูหมวดนี้
+                <Icon name="mynaui:arrow-long-right-solid" />
+              </NuxtLink>
+            </div>
+
+            <div v-if="section.products.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-12">
+              <ProductCard
+                v-for="(product, idx) in section.products"
+                :key="`${section.category.id}-${product.id}`"
+                :product="product"
+                class="fade-in-up"
+                :style="{ animationDelay: `${100 + idx * 80}ms`, animationDuration: '0.8s' }"
+              />
+            </div>
+
+            <div v-else class="rounded-[2rem] border border-primary-100 bg-white p-8 text-neutral-500">
+              ยังไม่มีสินค้าในหมวดนี้
+            </div>
+          </section>
+        </div>
+
+        <div v-else class="rounded-[2rem] border border-primary-100 bg-white p-10 text-center fade-in-up">
+          <Icon name="mynaui:sparkles" class="mx-auto mb-4 text-4xl text-primary-600" />
+          <h3 class="font-headline text-2xl font-black text-neutral-950">ยังไม่มีสินค้าแสดง</h3>
+          <p class="mt-2 text-neutral-500">เมื่อเพิ่มสินค้าในระบบแล้ว รายการจะแสดงที่หน้าแรกอัตโนมัติ</p>
         </div>
       </div>
     </section>
@@ -218,7 +271,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import Img1 from '@@/public/Home/1200x600-1-scaled.jpg'
 import Img2 from '@@/public/Home/1200x600-2-scaled.jpg'
 import Img3 from '@@/public/Home/1200x600-3-scaled.jpg'
@@ -227,7 +280,6 @@ import Img5 from '@@/public/Home/1200x600-6-scaled.jpg'
 import Img6 from '@@/public/Home/1200x600-7-scaled.jpg'
 import StoryImg from '@@/public/Home/Products-scaled.jpg'
 
-import { products } from '../assets/data'
 import { newsItems } from '../assets/news'
 
 useHead({
@@ -262,6 +314,37 @@ const productsSection = {
   title: 'Our Products',
   subtitle: 'ผลิตภัณฑ์อาหารเสริมและเพื่อสุขภาพที่คัดสรรมาอย่างดี',
 }
+
+const { data: homeProductsData, status: homeProductsStatus } = useLazyFetch<any[]>('/api/products')
+const { data: homeCategoriesData, status: homeCategoriesStatus } = useLazyFetch<any[]>('/api/categories')
+
+const homeProducts = computed(() => homeProductsData.value || [])
+const homeCategories = computed(() => homeCategoriesData.value || [])
+const homeCategorySections = computed(() =>
+  homeCategories.value
+    .map((category: any) => {
+      const id = String(category.id)
+      const childIds = homeCategories.value
+        .filter((child: any) => String(child.parent_id) === id)
+        .map((child: any) => String(child.id))
+      const ids = [id, ...childIds]
+      const products = homeProducts.value.filter((product: any) => ids.includes(String(product.category_id)))
+
+      return {
+        category,
+        products: products.slice(0, 3),
+        total: products.length,
+      }
+    })
+    .filter((section: any) => section.total > 0)
+)
+const isProductsSectionLoading = computed(() =>
+  isHomeLoading.value ||
+  homeProductsStatus.value === 'pending' ||
+  homeProductsStatus.value === 'idle' ||
+  homeCategoriesStatus.value === 'pending' ||
+  homeCategoriesStatus.value === 'idle'
+)
 
 const latestNews = newsItems.slice(0, 3)
 
