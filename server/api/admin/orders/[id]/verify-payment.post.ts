@@ -1,10 +1,10 @@
-import { requireAdmin } from "~~/server/utils/auth";
+import { requireSuperAdmin } from "~~/server/utils/auth";
 import { query } from "~~/server/utils/db";
 import { isChargeFailed, isChargeSuccessful, retrieveCharge } from "~~/server/utils/omise";
 import { markOrderPaymentFailed, markOrderPaymentSuccess } from "~~/server/utils/orders";
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requireSuperAdmin(event);
 
   const id = decodeURIComponent(getRouterParam(event, "id") || "");
   const rows = await query<any>(

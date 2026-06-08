@@ -1,34 +1,46 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 import { useAuthStore } from '@/store/auth'
+import { isSuperAdminRole } from '@/utils/adminAccess'
 
 const auth = useAuthStore()
+const isSuperAdmin = computed(() => isSuperAdminRole(auth.user?.role))
 
-const items = computed<NavigationMenuItem[]>(() => [{
-  label: 'Dashboard',
-  icon: 'i-lucide-layout-dashboard',
-  to: '/Admin'
-}, {
-  label: 'Products',
-  icon: 'i-lucide-package',
-  to: '/Admin/Products'
-}, {
-  label: 'Categories',
-  icon: 'i-lucide-folder-tree',
-  to: '/Admin/Categories'
-}, {
-  label: 'News',
-  icon: 'i-lucide-newspaper',
-  to: '/Admin/News'
-}, {
-  label: 'Orders',
-  icon: 'i-lucide-receipt-text',
-  to: '/Admin/Orders'
-}, {
-  label: 'Admins',
-  icon: 'i-lucide-shield-check',
-  to: '/Admin/Admins'
-}])
+const items = computed<NavigationMenuItem[]>(() => {
+  const baseItems: NavigationMenuItem[] = [{
+    label: 'Dashboard',
+    icon: 'i-lucide-layout-dashboard',
+    to: '/Admin'
+  }, {
+    label: 'Products',
+    icon: 'i-lucide-package',
+    to: '/Admin/Products'
+  }, {
+    label: 'Categories',
+    icon: 'i-lucide-folder-tree',
+    to: '/Admin/Categories'
+  }, {
+    label: 'News',
+    icon: 'i-lucide-newspaper',
+    to: '/Admin/News'
+  }]
+
+  if (!isSuperAdmin.value) return baseItems
+
+  return [
+    ...baseItems,
+    {
+      label: 'Orders',
+      icon: 'i-lucide-receipt-text',
+      to: '/Admin/Orders'
+    },
+    {
+      label: 'Admins',
+      icon: 'i-lucide-shield-check',
+      to: '/Admin/Admins'
+    }
+  ]
+})
 </script>
 
 <template>

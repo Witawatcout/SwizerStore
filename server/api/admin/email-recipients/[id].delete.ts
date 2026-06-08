@@ -1,9 +1,9 @@
-import { requireAdmin } from "~~/server/utils/auth";
+import { requireSuperAdmin } from "~~/server/utils/auth";
 import { ensureAdminEmailRecipientsSchema } from "~~/server/utils/adminEmailRecipients";
 import { query } from "~~/server/utils/db";
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requireSuperAdmin(event);
   await ensureAdminEmailRecipientsSchema();
 
   const id = Number(getRouterParam(event, "id"));

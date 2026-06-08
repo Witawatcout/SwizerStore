@@ -1,4 +1,5 @@
 import { requireAuth } from "~~/server/utils/auth";
+import { isSuperAdminRole } from "~~/server/utils/adminAccess";
 import { query } from "~~/server/utils/db";
 import { isChargeFailed, isChargeSuccessful, retrieveCharge } from "~~/server/utils/omise";
 import { markOrderPaymentFailed, markOrderPaymentSuccess } from "~~/server/utils/orders";
@@ -21,7 +22,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const order = rows[0];
-  const canView = auth.role === "admin" || Number(order.user_id) === Number(auth.id);
+  const canView = isSuperAdminRole(auth.role) || Number(order.user_id) === Number(auth.id);
   if (!canView) {
     throw createError({ statusCode: 403, statusMessage: "Forbidden" });
   }

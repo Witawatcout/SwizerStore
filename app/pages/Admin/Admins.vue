@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ADMIN_ROLE, SUPER_ADMIN_ROLE, adminRoleLabel, isAdminRole, isSuperAdminRole } from "@/utils/adminAccess";
+
 definePageMeta({ layout: "admin" });
 
 useHead({ title: "Admins | Swizer Superfoods" });
@@ -38,12 +40,17 @@ const activeEmailRecipientCount = computed(() =>
   emailRecipients.value.filter((recipient) => Boolean(Number(recipient.is_active))).length
 );
 const loadingEmailRecipients = computed(() => emailRecipientsStatus.value === "pending" || emailRecipientsStatus.value === "idle");
-const adminUsers = computed(() => (usersData.value?.users || []).filter((user) => user.role === "admin"));
+const adminUsers = computed(() => (usersData.value?.users || []).filter((user) => isAdminRole(user.role)));
 const loadingUsers = computed(() => usersStatus.value === "pending" || usersStatus.value === "idle");
+const adminRoleOptions = [
+  { label: "Admin", value: ADMIN_ROLE },
+  { label: "Super Admin", value: SUPER_ADMIN_ROLE },
+];
 
 const isSavingEmailRecipient = ref(false);
 const deletingEmailRecipientId = ref<number | null>(null);
 const isCreatingAdminUser = ref(false);
+const changingAdminRoleId = ref<number | null>(null);
 
 const emailRecipientForm = reactive({
   id: null as number | null,
@@ -56,6 +63,7 @@ const adminUserForm = reactive({
   email: "",
   password: "",
   confirmPassword: "",
+  role: ADMIN_ROLE,
 });
 const isEditingEmailRecipient = computed(() => Boolean(emailRecipientForm.id));
 
@@ -170,6 +178,7 @@ function resetAdminUserForm() {
   adminUserForm.email = "";
   adminUserForm.password = "";
   adminUserForm.confirmPassword = "";
+  adminUserForm.role = ADMIN_ROLE;
 }
 
 async function createAdminUser() {
@@ -192,6 +201,7 @@ async function createAdminUser() {
         email: adminUserForm.email.trim(),
         password: adminUserForm.password,
         confirmPassword: adminUserForm.confirmPassword,
+        role: adminUserForm.role,
       },
     });
 
@@ -212,6 +222,35 @@ async function createAdminUser() {
     });
   } finally {
     isCreatingAdminUser.value = false;
+  }
+}
+
+async function updateAdminRole(user: AdminUser, role: string) {
+  const nextRole = role === SUPER_ADMIN_ROLE ? SUPER_ADMIN_ROLE : ADMIN_ROLE;
+  if (nextRole === user.role || changingAdminRoleId.value) return;
+
+  changingAdminRoleId.value = user.id;
+  try {
+    await $authFetch(`/api/admin/users/${user.id}/role`, {
+      method: "PUT",
+      body: { role: nextRole },
+    });
+    toast.add({
+      title: "บันทึกสิทธิ admin แล้ว",
+      description: `${user.username} เป็น ${adminRoleLabel(nextRole)} แล้ว`,
+      color: "success",
+      icon: "i-lucide-shield-check",
+    });
+    await refreshUsers();
+  } catch (error: any) {
+    toast.add({
+      title: "แก้ไขสิทธิไม่สำเร็จ",
+      description: errorMessage(error, "กรุณาลองใหม่อีกครั้ง"),
+      color: "error",
+      icon: "i-lucide-circle-alert",
+    });
+  } finally {
+    changingAdminRoleId.value = null;
   }
 }
 
@@ -383,6 +422,15 @@ async function refreshAll() {
                 <UFormField label="อีเมล" required>
                   <UInput v-model="adminUserForm.email" icon="i-lucide-mail" type="email" placeholder="admin@example.com" size="lg" autocomplete="email" class="w-full" />
                 </UFormField>
+                <UFormField label="สิทธิการใช้งาน" required>
+                  <USelect
+                    v-model="adminUserForm.role"
+                    :items="adminRoleOptions"
+                    icon="i-lucide-shield-check"
+                    size="lg"
+                    class="w-full"
+                  />
+                </UFormField>
                 <UFormField label="รหัสผ่าน" required>
                   <UInput v-model="adminUserForm.password" icon="i-lucide-lock" type="password" placeholder="อย่างน้อย 8 ตัวอักษร" size="lg" autocomplete="new-password" class="w-full" />
                 </UFormField>
@@ -419,11 +467,26 @@ async function refreshAll() {
                   <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-2">
                       <p class="truncate font-semibold text-default">{{ user.username }}</p>
-                      <UBadge label="admin" color="primary" variant="subtle" />
+                      <UBadge
+                        :label="adminRoleLabel(user.role)"
+                        :color="isSuperAdminRole(user.role) ? 'warning' : 'primary'"
+                        variant="subtle"
+                      />
                     </div>
                     <p class="truncate text-sm text-muted">{{ user.email }}</p>
                   </div>
-                  <p class="text-xs text-muted">{{ formatDate(user.created_at) }}</p>
+                  <div class="flex flex-col gap-2 sm:items-end">
+                    <USelect
+                      :model-value="user.role"
+                      :items="adminRoleOptions"
+                      size="sm"
+                      class="w-40"
+                      :loading="changingAdminRoleId === user.id"
+                      :disabled="Boolean(changingAdminRoleId)"
+                      @update:model-value="updateAdminRole(user, String($event))"
+                    />
+                    <p class="text-xs text-muted">{{ formatDate(user.created_at) }}</p>
+                  </div>
                 </div>
               </div>
 

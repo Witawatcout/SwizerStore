@@ -3,13 +3,15 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 import Logo from '@@/public/Swizer/SwizerMainLogo.png'
 import { useAuthStore } from '@/store/auth'
 import { useCartStore } from '@/store/cart'
+import { isAdminRole, isSuperAdminRole } from '@/utils/adminAccess'
 
 const auth = useAuthStore()
 const cart = useCartStore()
 const route = useRoute()
 
 const isLoggedIn = computed(() => Boolean(auth.token))
-const isAdmin = computed(() => auth.user?.role === 'admin')
+const isAdmin = computed(() => isAdminRole(auth.user?.role))
+const isSuperAdmin = computed(() => isSuperAdminRole(auth.user?.role))
 const isNavVisible = ref(true)
 const lastScrollY = ref(0)
 const { $swizerTranslate } = useNuxtApp() as any
@@ -50,14 +52,16 @@ const mobileItems = computed<NavigationMenuItem[]>(() => {
   if (isAdmin.value) {
     items.push(
       { label: 'Admin Dashboard', icon: 'i-lucide-layout-dashboard', to: '/Admin' },
-      { label: 'จัดการคำสั่งซื้อ', icon: 'i-lucide-receipt-text', to: '/Admin/Orders' },
       { label: 'จัดการสินค้า', icon: 'i-lucide-package', to: '/Admin/Products' },
     )
   }
 
+  if (isSuperAdmin.value) {
+    items.push({ label: 'คำสั่งซื้อทั้งหมด', icon: 'i-lucide-receipt-text', to: '/Admin/Orders' })
+  }
+
   return items
 })
-
 const accountMenuItems = computed(() => {
   if (!isLoggedIn.value) return []
 
@@ -77,13 +81,17 @@ const accountMenuItems = computed(() => {
   ]
 
   if (isAdmin.value) {
-    groups.push([
+    const adminGroup: NavigationMenuItem[] = [
       { label: 'Admin Dashboard', icon: 'i-lucide-layout-dashboard', to: '/Admin' },
-      { label: 'คำสั่งซื้อทั้งหมด', icon: 'i-lucide-receipt-text', to: '/Admin/Orders' },
       { label: 'จัดการสินค้า', icon: 'i-lucide-package', to: '/Admin/Products' },
-    ])
-  }
+    ]
 
+    if (isSuperAdmin.value) {
+      adminGroup.push({ label: 'คำสั่งซื้อทั้งหมด', icon: 'i-lucide-receipt-text', to: '/Admin/Orders' })
+    }
+
+    groups.push(adminGroup)
+  }
   groups.push([
     {
       label: 'ออกจากระบบ',

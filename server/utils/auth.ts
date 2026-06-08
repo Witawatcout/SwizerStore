@@ -1,10 +1,11 @@
 import { verifyJwt } from "~~/server/utils/jwt";
+import { isAdminRole, isSuperAdminRole } from "~~/server/utils/adminAccess";
 
 export interface AuthPayload {
   id?: number;
   username: string;
   email?: string | null;
-  role: "user" | "admin" | string;
+  role: "user" | "admin" | "super_admin" | string;
 }
 
 export function getBearerToken(event: any) {
@@ -30,8 +31,16 @@ export function requireAuth(event: any): AuthPayload {
 
 export function requireAdmin(event: any): AuthPayload {
   const payload = requireAuth(event);
-  if (payload.role !== "admin") {
+  if (!isAdminRole(payload.role)) {
     throw createError({ statusCode: 403, statusMessage: "Forbidden: Admin access required" });
+  }
+  return payload;
+}
+
+export function requireSuperAdmin(event: any): AuthPayload {
+  const payload = requireAuth(event);
+  if (!isSuperAdminRole(payload.role)) {
+    throw createError({ statusCode: 403, statusMessage: "Forbidden: Super admin access required" });
   }
   return payload;
 }

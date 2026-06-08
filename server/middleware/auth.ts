@@ -1,4 +1,5 @@
 import { verifyJwt } from "~~/server/utils/jwt";
+import { isAdminRole, isSuperAdminRole } from "~~/server/utils/adminAccess";
 
 export default defineEventHandler((event) => {
   const path = getRequestURL(event).pathname;
@@ -32,8 +33,17 @@ export default defineEventHandler((event) => {
       path.startsWith("/api/news") ||
       path.startsWith("/api/upload")) &&
     method !== "GET";
+  const isSuperAdminOnly =
+    path.startsWith("/api/admin/orders") ||
+    path.startsWith("/api/admin/notifications") ||
+    path.startsWith("/api/admin/users") ||
+    path.startsWith("/api/admin/email-recipients");
 
-  if ((path.startsWith("/api/admin") || isProductWrite || isCatalogWrite) && payload.role !== "admin") {
+  if (isSuperAdminOnly && !isSuperAdminRole(payload.role)) {
+    throw createError({ statusCode: 403, statusMessage: "Forbidden: Super admin access required" });
+  }
+
+  if ((path.startsWith("/api/admin") || isProductWrite || isCatalogWrite) && !isAdminRole(payload.role)) {
     throw createError({ statusCode: 403, statusMessage: "Forbidden: Admin access required" });
   }
 

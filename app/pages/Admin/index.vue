@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/store/auth";
+import { isAdminRole, isSuperAdminRole } from "@/utils/adminAccess";
+
 definePageMeta({ layout: "admin" });
 
 useHead({ title: "Admin Dashboard | Swizer Superfoods" });
@@ -22,36 +25,42 @@ interface AdminUser {
 }
 
 const toast = useToast();
+const auth = useAuthStore();
+const isSuperAdmin = computed(() => isSuperAdminRole(auth.user?.role));
 const activeDashboardTab = ref<"overview" | "admin">("overview");
 const dashboardTabs = [
   { key: "overview", label: "ภาพรวม", icon: "i-lucide-layout-dashboard" },
   { key: "admin", label: "จัดการแอดมิน", icon: "i-lucide-shield-check" },
 ] as const;
-const { data: productsData } = useAuthFetch<any[]>("/api/products?includeInactive=1");
-const { data: categoriesData } = useAuthFetch<any[]>("/api/categories?includeInactive=1");
-const { data: ordersData, status: ordersStatus, refresh: refreshOrders } = useAuthFetch<any[]>("/api/admin/orders");
+const { data: productsData, refresh: refreshProducts } = useAuthFetch<any[]>("/api/products?includeInactive=1");
+const { data: categoriesData, refresh: refreshCategories } = useAuthFetch<any[]>("/api/categories?includeInactive=1");
+const { data: newsData, refresh: refreshNews } = useAuthFetch<any[]>("/api/news");
+const { data: ordersData, status: ordersStatus, refresh: refreshOrders } = useAuthFetch<any[]>("/api/admin/orders", {
+  immediate: false,
+});
 const {
   data: usersData,
   status: usersStatus,
   refresh: refreshUsers,
-} = useAuthFetch<{ users: AdminUser[] }>("/api/admin/users");
+} = useAuthFetch<{ users: AdminUser[] }>("/api/admin/users", { immediate: false });
 const {
   data: notificationData,
   pending: notificationsPending,
   refresh: refreshNotifications,
-} = useAuthFetch<any>("/api/admin/notifications/orders");
+} = useAuthFetch<any>("/api/admin/notifications/orders", { immediate: false });
 const {
   data: emailRecipientsData,
   status: emailRecipientsStatus,
   refresh: refreshEmailRecipients,
-} = useAuthFetch<AdminEmailRecipient[]>("/api/admin/email-recipients");
+} = useAuthFetch<AdminEmailRecipient[]>("/api/admin/email-recipients", { immediate: false });
 
 const products = computed(() => productsData.value || []);
 const categories = computed(() => categoriesData.value || []);
+const news = computed(() => newsData.value || []);
 const orders = computed(() => ordersData.value || []);
-const loadingOrders = computed(() => ordersStatus.value === "pending" || ordersStatus.value === "idle");
+const loadingOrders = computed(() => isSuperAdmin.value && (ordersStatus.value === "pending" || ordersStatus.value === "idle"));
 const users = computed(() => usersData.value?.users || []);
-const adminUsers = computed(() => users.value.filter((user) => user.role === "admin"));
+const adminUsers = computed(() => users.value.filter((user) => isAdminRole(user.role)));
 const loadingUsers = computed(() => usersStatus.value === "pending" || usersStatus.value === "idle");
 const emailRecipients = computed(() => emailRecipientsData.value || []);
 const loadingEmailRecipients = computed(() => emailRecipientsStatus.value === "pending" || emailRecipientsStatus.value === "idle");
@@ -61,7 +70,13 @@ const activeEmailRecipientCount = computed(() =>
 
 const totalProducts = computed(() => products.value.length);
 const activeProducts = computed(() => products.value.filter((product) => Number(product.is_active ?? 1) === 1).length);
+const inactiveProducts = computed(() => Math.max(totalProducts.value - activeProducts.value, 0));
 const totalCategories = computed(() => categories.value.length);
+const activeCategories = computed(() => categories.value.filter((category) => Number(category.is_active ?? 1) === 1).length);
+const inactiveCategories = computed(() => Math.max(totalCategories.value - activeCategories.value, 0));
+const totalNews = computed(() => news.value.length);
+const recentNews = computed(() => news.value.slice(0, 5));
+const latestProducts = computed(() => products.value.slice(0, 5));
 const lowStockProducts = computed(() =>
   products.value
     .filter((product) => Number(product.is_active ?? 1) === 1 && Number(product.stock || 0) <= 5)
@@ -145,15 +160,40 @@ const paymentBreakdown = computed(() => [
 
 let notificationTimer: ReturnType<typeof setInterval> | undefined;
 
-onMounted(() => {
+function stopSuperAdminDashboardPolling() {
+  if (!notificationTimer) return;
+  clearInterval(notificationTimer);
+  notificationTimer = undefined;
+}
+
+function loadSuperAdminDashboard() {
+  refreshOrders();
+  refreshNotifications();
+  refreshEmailRecipients();
+  refreshUsers();
+
+  if (notificationTimer) return;
   notificationTimer = setInterval(() => {
     refreshNotifications();
     refreshOrders();
   }, 30000);
+}
+
+onMounted(() => {
+  if (isSuperAdmin.value) loadSuperAdminDashboard();
+});
+
+watch(isSuperAdmin, (value) => {
+  if (value) {
+    loadSuperAdminDashboard();
+    return;
+  }
+
+  stopSuperAdminDashboardPolling();
 });
 
 onBeforeUnmount(() => {
-  if (notificationTimer) clearInterval(notificationTimer);
+  stopSuperAdminDashboardPolling();
 });
 
 function formatMoney(value: number | string) {
@@ -206,7 +246,7 @@ function percent(count: number) {
 }
 
 async function markNotificationsSeen() {
-  if (!newOrderCount.value || isMarkingSeen.value) return;
+  if (!isSuperAdmin.value || !newOrderCount.value || isMarkingSeen.value) return;
 
   isMarkingSeen.value = true;
   try {
@@ -218,7 +258,20 @@ async function markNotificationsSeen() {
 }
 
 async function refreshDashboard() {
-  await Promise.all([refreshOrders(), refreshNotifications(), refreshEmailRecipients(), refreshUsers()]);
+  if (!isSuperAdmin.value) {
+    await Promise.all([refreshProducts(), refreshCategories(), refreshNews()]);
+    return;
+  }
+
+  await Promise.all([
+    refreshProducts(),
+    refreshCategories(),
+    refreshNews(),
+    refreshOrders(),
+    refreshNotifications(),
+    refreshEmailRecipients(),
+    refreshUsers(),
+  ]);
 }
 
 function resetAdminUserForm() {
@@ -401,8 +454,9 @@ async function deleteEmailRecipient(recipient: AdminEmailRecipient) {
           <UDashboardSidebarCollapse />
         </template>
 
-        <template #right>
+        <template v-if="isSuperAdmin" #right>
           <UButton
+            v-if="isSuperAdmin"
             to="/Admin/Orders"
             icon="i-lucide-bell"
             :label="newOrderCount ? `${newOrderCount} คำสั่งซื้อใหม่` : 'ไม่มีคำสั่งซื้อใหม่'"
@@ -425,15 +479,94 @@ async function deleteEmailRecipient(recipient: AdminEmailRecipient) {
             <p class="text-muted mt-1">สรุปยอดขาย คำสั่งซื้อ สถานะจัดส่ง และข้อมูลสินค้าในที่เดียว</p>
           </div>
 
-          <div class="flex flex-wrap gap-2">
+          <div v-if="isSuperAdmin" class="flex flex-wrap gap-2">
             <UButton to="/Admin/Orders" icon="i-lucide-receipt-text" label="ดูคำสั่งซื้อ" color="primary" />
             <UButton to="/Admin/Products" icon="i-lucide-package" label="จัดการสินค้า" color="neutral" variant="soft" />
             <UButton to="/" icon="i-lucide-store" label="กลับหน้าเว็บ" color="neutral" variant="soft" />
           </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <UAlert
+          v-if="!isSuperAdmin"
+          icon="i-lucide-eye"
+          color="neutral"
+          variant="soft"
+          title="Dashboard สำหรับ admin ปกติเป็นโหมดดูข้อมูล"
+          description="บัญชีนี้ดูภาพรวมได้อย่างเดียว และสามารถจัดการได้เฉพาะเมนู Products, Categories และ News จาก sidebar"
+        />
+
+        <div v-if="!isSuperAdmin" class="grid grid-cols-1 gap-4 xl:grid-cols-3">
           <UCard>
+            <template #header>
+              <div class="flex items-center gap-2">
+                <UIcon name="i-lucide-package" class="size-5 text-primary" />
+                <h2 class="font-semibold text-default">สินค้าล่าสุด</h2>
+              </div>
+            </template>
+
+            <div v-if="latestProducts.length" class="divide-y divide-muted">
+              <div v-for="product in latestProducts" :key="product.id" class="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                <div class="min-w-0">
+                  <p class="truncate font-medium text-default">{{ product.name }}</p>
+                  <p class="text-xs text-muted">{{ product.category_name || "ไม่มีหมวดหมู่" }}</p>
+                </div>
+                <div class="flex shrink-0 items-center gap-2">
+                  <UBadge :label="Number(product.is_active ?? 1) === 1 ? 'เปิดขาย' : 'ปิดขาย'" :color="Number(product.is_active ?? 1) === 1 ? 'success' : 'neutral'" variant="subtle" />
+                  <span class="text-sm font-semibold text-default">{{ product.stock || 0 }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div v-else class="rounded-lg border border-dashed border-muted p-6 text-center">
+              <p class="font-medium text-default">ยังไม่มีสินค้า</p>
+            </div>
+          </UCard>
+
+          <UCard>
+            <template #header>
+              <div class="flex items-center gap-2">
+                <UIcon name="i-lucide-folder-tree" class="size-5 text-success" />
+                <h2 class="font-semibold text-default">สถานะหมวดหมู่</h2>
+              </div>
+            </template>
+
+            <div v-if="categories.length" class="divide-y divide-muted">
+              <div v-for="category in categories.slice(0, 6)" :key="category.id" class="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                <div class="min-w-0">
+                  <p class="truncate font-medium text-default">{{ category.name }}</p>
+                  <p class="text-xs text-muted">{{ category.parent_id ? "หมวดย่อย" : "หมวดหลัก" }}</p>
+                </div>
+                <UBadge :label="Number(category.is_active ?? 1) === 1 ? 'เปิดใช้งาน' : 'ปิดใช้งาน'" :color="Number(category.is_active ?? 1) === 1 ? 'success' : 'neutral'" variant="subtle" />
+              </div>
+            </div>
+
+            <div v-else class="rounded-lg border border-dashed border-muted p-6 text-center">
+              <p class="font-medium text-default">ยังไม่มีหมวดหมู่</p>
+            </div>
+          </UCard>
+
+          <UCard>
+            <template #header>
+              <div class="flex items-center gap-2">
+                <UIcon name="i-lucide-newspaper" class="size-5 text-warning" />
+                <h2 class="font-semibold text-default">ข่าวล่าสุด</h2>
+              </div>
+            </template>
+
+            <div v-if="recentNews.length" class="divide-y divide-muted">
+              <div v-for="item in recentNews" :key="item.id" class="py-3 first:pt-0 last:pb-0">
+                <p class="line-clamp-1 font-medium text-default">{{ item.title }}</p>
+                <p class="text-xs text-muted">{{ item.created_at ? formatDate(item.created_at) : "-" }}</p>
+              </div>
+            </div>
+
+            <div v-else class="rounded-lg border border-dashed border-muted p-6 text-center">
+              <p class="font-medium text-default">ยังไม่มีข่าวสาร</p>
+            </div>
+          </UCard>
+        </div>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <UCard v-if="isSuperAdmin">
             <div class="flex items-center gap-4">
               <div class="rounded-lg bg-primary/10 p-3">
                 <UIcon name="i-lucide-banknote" class="size-6 text-primary" />
@@ -446,7 +579,7 @@ async function deleteEmailRecipient(recipient: AdminEmailRecipient) {
             </div>
           </UCard>
 
-          <UCard>
+          <UCard v-if="isSuperAdmin">
             <div class="flex items-center gap-4">
               <div class="rounded-lg bg-success/10 p-3">
                 <UIcon name="i-lucide-calendar-check" class="size-6 text-success" />
@@ -459,7 +592,7 @@ async function deleteEmailRecipient(recipient: AdminEmailRecipient) {
             </div>
           </UCard>
 
-          <UCard>
+          <UCard v-if="isSuperAdmin">
             <div class="flex items-center gap-4">
               <div class="rounded-lg bg-warning/10 p-3">
                 <UIcon name="i-lucide-clock" class="size-6 text-warning" />
@@ -481,6 +614,45 @@ async function deleteEmailRecipient(recipient: AdminEmailRecipient) {
                 <p class="text-sm text-muted">สินค้าใช้งานอยู่</p>
                 <p class="text-2xl font-bold text-default">{{ activeProducts }} / {{ totalProducts }}</p>
                 <p class="text-xs text-muted">{{ totalCategories }} หมวดหมู่ · stock ต่ำ {{ lowStockProducts.length }}</p>
+              </div>
+            </div>
+          </UCard>
+
+          <UCard v-if="!isSuperAdmin">
+            <div class="flex items-center gap-4">
+              <div class="rounded-lg bg-success/10 p-3">
+                <UIcon name="i-lucide-folder-tree" class="size-6 text-success" />
+              </div>
+              <div>
+                <p class="text-sm text-muted">หมวดหมู่ที่เปิดใช้งาน</p>
+                <p class="text-2xl font-bold text-default">{{ activeCategories }} / {{ totalCategories }}</p>
+                <p class="text-xs text-muted">ปิดใช้งาน {{ inactiveCategories }} หมวดหมู่</p>
+              </div>
+            </div>
+          </UCard>
+
+          <UCard v-if="!isSuperAdmin">
+            <div class="flex items-center gap-4">
+              <div class="rounded-lg bg-warning/10 p-3">
+                <UIcon name="i-lucide-newspaper" class="size-6 text-warning" />
+              </div>
+              <div>
+                <p class="text-sm text-muted">ข่าวสารทั้งหมด</p>
+                <p class="text-2xl font-bold text-default">{{ totalNews }}</p>
+                <p class="text-xs text-muted">แสดงข้อมูลจากหน้า News</p>
+              </div>
+            </div>
+          </UCard>
+
+          <UCard v-if="!isSuperAdmin">
+            <div class="flex items-center gap-4">
+              <div class="rounded-lg bg-error/10 p-3">
+                <UIcon name="i-lucide-triangle-alert" class="size-6 text-error" />
+              </div>
+              <div>
+                <p class="text-sm text-muted">สินค้า stock ต่ำ</p>
+                <p class="text-2xl font-bold text-default">{{ lowStockProducts.length }}</p>
+                <p class="text-xs text-muted">สินค้าเหลือ 5 ชิ้นหรือน้อยกว่า</p>
               </div>
             </div>
           </UCard>
@@ -776,7 +948,7 @@ async function deleteEmailRecipient(recipient: AdminEmailRecipient) {
         </UCard>
 
         <div class="grid grid-cols-1 gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-          <UCard>
+          <UCard v-if="isSuperAdmin">
             <template #header>
               <div class="flex items-center justify-between gap-3">
                 <div>
@@ -804,7 +976,7 @@ async function deleteEmailRecipient(recipient: AdminEmailRecipient) {
           </UCard>
 
           <div class="grid gap-4">
-            <UCard>
+            <UCard v-if="isSuperAdmin">
               <template #header>
                 <h2 class="font-semibold text-default">ช่องทางชำระเงิน</h2>
               </template>
@@ -844,7 +1016,7 @@ async function deleteEmailRecipient(recipient: AdminEmailRecipient) {
           </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_1fr]">
+        <div v-if="isSuperAdmin" class="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_1fr]">
           <UCard>
             <template #header>
               <div class="flex items-center justify-between gap-3">

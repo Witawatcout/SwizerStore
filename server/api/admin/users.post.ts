@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
-import { requireAdmin } from "~~/server/utils/auth";
+import { ADMIN_ROLE, SUPER_ADMIN_ROLE } from "~~/server/utils/adminAccess";
+import { requireSuperAdmin } from "~~/server/utils/auth";
 import { query } from "~~/server/utils/db";
 import { ensureEmailVerificationSchema } from "~~/server/utils/emailVerification";
 
@@ -8,6 +9,7 @@ interface CreateAdminUserBody {
   email?: string;
   password?: string;
   confirmPassword?: string;
+  role?: string;
 }
 
 function requireText(value: unknown, field: string) {
@@ -18,13 +20,14 @@ function requireText(value: unknown, field: string) {
 }
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requireSuperAdmin(event);
 
   const body = await readBody<CreateAdminUserBody>(event);
   const username = requireText(body.username, "username");
   const email = requireText(body.email, "email").toLowerCase();
   const password = requireText(body.password, "password");
   const confirmPassword = requireText(body.confirmPassword, "confirmPassword");
+  const role = body.role === SUPER_ADMIN_ROLE ? SUPER_ADMIN_ROLE : ADMIN_ROLE;
 
   if (!/^[a-zA-Z0-9._-]{3,50}$/.test(username)) {
     throw createError({
@@ -59,8 +62,8 @@ export default defineEventHandler(async (event) => {
 
   const hashedPassword = await bcrypt.hash(password, 12);
   const result = (await query<any>(
-    "INSERT INTO users (username, email, password, role, email_verified_at) VALUES (?, ?, ?, 'admin', UTC_TIMESTAMP())",
-    [username, email, hashedPassword]
+    "INSERT INTO users (username, email, password, role, email_verified_at) VALUES (?, ?, ?, ?, UTC_TIMESTAMP())",
+    [username, email, hashedPassword, role]
   )) as any;
 
   return {
@@ -69,7 +72,7 @@ export default defineEventHandler(async (event) => {
       id: result.insertId,
       username,
       email,
-      role: "admin",
+      role,
     },
   };
 });

@@ -1,5 +1,6 @@
 import { query } from '@@/server/utils/db';
 import { getOptionalAuth } from '~~/server/utils/auth';
+import { isAdminRole } from '~~/server/utils/adminAccess';
 
 export default defineEventHandler(async (event) => {
   const id = decodeURIComponent(getRouterParam(event, 'id') || '');
@@ -12,7 +13,7 @@ export default defineEventHandler(async (event) => {
        LEFT JOIN categories c ON p.category_id = c.id
        LEFT JOIN categories parent ON c.parent_id = parent.id
        WHERE p.id = ?
-       ${auth?.role === 'admin' ? '' : 'AND COALESCE(p.is_active, 1) = 1 AND (p.category_id IS NULL OR (COALESCE(c.is_active, 1) = 1 AND (c.parent_id IS NULL OR COALESCE(parent.is_active, 1) = 1)))'}`,
+       ${isAdminRole(auth?.role) ? '' : 'AND COALESCE(p.is_active, 1) = 1 AND (p.category_id IS NULL OR (COALESCE(c.is_active, 1) = 1 AND (c.parent_id IS NULL OR COALESCE(parent.is_active, 1) = 1)))'}`,
       [id]
     );
 

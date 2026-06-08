@@ -1,4 +1,5 @@
 import { getOptionalAuth } from "~~/server/utils/auth";
+import { isSuperAdminRole } from "~~/server/utils/adminAccess";
 import { query } from "~~/server/utils/db";
 
 export default defineEventHandler(async (event) => {
@@ -32,7 +33,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const order = rows[0];
-  const canViewPrivate = auth?.role === "admin" || (auth?.id && Number(order.user_id) === Number(auth.id));
+  const canViewPrivate = isSuperAdminRole(auth?.role) || (auth?.id && Number(order.user_id) === Number(auth.id));
   const items = await query<any>("SELECT product_id, product_name, unit_price, quantity, subtotal FROM order_items WHERE order_id = ?", [id]);
 
   const publicOrder = {

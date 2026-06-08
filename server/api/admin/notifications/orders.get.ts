@@ -1,8 +1,8 @@
-import { requireAdmin } from "~~/server/utils/auth";
+import { requireSuperAdmin } from "~~/server/utils/auth";
 import { query } from "~~/server/utils/db";
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requireSuperAdmin(event);
 
   const countRows = await query<{ count: number }>(
     `SELECT COUNT(*) AS count

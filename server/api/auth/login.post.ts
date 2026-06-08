@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { signJwt } from "~~/server/utils/jwt";
 import { checkRateLimit, getRateLimitInfo } from "~~/server/utils/rateLimit";
 import { ensureEmailVerificationSchema } from "~~/server/utils/emailVerification";
+import { ensureAtLeastOneSuperAdmin } from "~~/server/utils/adminAccess";
 
 export default defineEventHandler(async (event) => {
   // Rate limiting — ตรวจจำนวน attempt ต่อ IP
@@ -24,6 +25,7 @@ export default defineEventHandler(async (event) => {
   }
 
   await ensureEmailVerificationSchema();
+  await ensureAtLeastOneSuperAdmin();
 
   // ดึงเฉพาะ field ที่ต้องใช้ (ไม่ SELECT *)
   const users = await query<any>(

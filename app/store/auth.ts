@@ -12,6 +12,11 @@ interface User {
   role: string;
 }
 
+interface MeResponse {
+  user: User;
+  token?: string;
+}
+
 export const useAuthStore = defineStore(
   "auth",
   () => {
@@ -44,10 +49,11 @@ export const useAuthStore = defineStore(
     async function fetchUser() {
       if (!token.value) return;
       try {
-        const data = await $fetch("/api/auth/me", {
+        const data = await $fetch<MeResponse>("/api/auth/me", {
           headers: { Authorization: `Bearer ${token.value}` },
         });
-        user.value = data.user as User;
+        user.value = data.user;
+        if (data.token) token.value = data.token;
       } catch (e) {
         // token หมดอายุหรือ user ถูกลบ → logout
         logout();

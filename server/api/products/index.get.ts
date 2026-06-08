@@ -1,4 +1,5 @@
 import { getOptionalAuth } from "~~/server/utils/auth";
+import { isAdminRole } from "~~/server/utils/adminAccess";
 import { query } from "@@/server/utils/db";
 
 function parseJson(value: any) {
@@ -13,7 +14,7 @@ function parseJson(value: any) {
 export default defineEventHandler(async (event) => {
   try {
     const auth = getOptionalAuth(event);
-    const includeInactive = getQuery(event).includeInactive === "1" && auth?.role === "admin";
+    const includeInactive = getQuery(event).includeInactive === "1" && isAdminRole(auth?.role);
 
     const rows = await query(`
       SELECT p.*, c.name as category_name

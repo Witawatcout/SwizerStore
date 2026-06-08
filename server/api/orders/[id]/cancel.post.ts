@@ -1,4 +1,5 @@
 import { requireAuth } from "~~/server/utils/auth";
+import { isSuperAdminRole } from "~~/server/utils/adminAccess";
 import { getPool } from "~~/server/utils/db";
 
 export default defineEventHandler(async (event) => {
@@ -31,7 +32,7 @@ export default defineEventHandler(async (event) => {
 
     const order = rows[0];
     const isOwner = Number(order.user_id) === Number(auth.id);
-    const isAdmin = auth.role === "admin";
+    const isAdmin = isSuperAdminRole(auth.role);
 
     if (!isOwner && !isAdmin) {
       throw createError({ statusCode: 403, statusMessage: "Forbidden" });

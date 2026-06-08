@@ -1,5 +1,6 @@
 import { query } from '@@/server/utils/db';
 import { getOptionalAuth } from '~~/server/utils/auth';
+import { isAdminRole } from '~~/server/utils/adminAccess';
 import { ensureCategoryStatusSchema } from '~~/server/utils/categories';
 
 export default defineEventHandler(async (event) => {
@@ -7,7 +8,7 @@ export default defineEventHandler(async (event) => {
     await ensureCategoryStatusSchema();
 
     const auth = getOptionalAuth(event);
-    const includeInactive = getQuery(event).includeInactive === '1' && auth?.role === 'admin';
+    const includeInactive = getQuery(event).includeInactive === '1' && isAdminRole(auth?.role);
     const categories = await query(
       includeInactive
         ? `SELECT c.* FROM categories c ORDER BY c.name ASC`

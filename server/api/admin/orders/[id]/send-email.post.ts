@@ -1,8 +1,8 @@
-import { requireAdmin } from "~~/server/utils/auth";
+import { requireSuperAdmin } from "~~/server/utils/auth";
 import { sendOrderPaidEmails } from "~~/server/utils/orderEmails";
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requireSuperAdmin(event);
 
   const id = decodeURIComponent(getRouterParam(event, "id") || "");
   if (!id) {

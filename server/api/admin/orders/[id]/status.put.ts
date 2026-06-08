@@ -1,10 +1,10 @@
-import { requireAdmin } from "~~/server/utils/auth";
+import { requireSuperAdmin } from "~~/server/utils/auth";
 import { query } from "~~/server/utils/db";
 
 const allowedStatuses = ["pending", "paid", "processing", "shipped", "delivered", "cancelled"];
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requireSuperAdmin(event);
 
   const id = decodeURIComponent(getRouterParam(event, "id") || "");
   const body = await readBody<{ status: string }>(event);

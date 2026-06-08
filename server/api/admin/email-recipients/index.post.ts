@@ -1,4 +1,4 @@
-import { requireAdmin } from "~~/server/utils/auth";
+import { requireSuperAdmin } from "~~/server/utils/auth";
 import {
   assertValidAdminRecipientEmail,
   ensureAdminEmailRecipientsSchema,
@@ -6,7 +6,7 @@ import {
 import { query } from "~~/server/utils/db";
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  requireSuperAdmin(event);
   await ensureAdminEmailRecipientsSchema();
 
   const body = await readBody<{ name?: string; email?: string; is_active?: boolean }>(event);
