@@ -35,6 +35,8 @@ const mainImageInput = ref<HTMLInputElement>()
 const pendingMainImage = ref<File | null>(null)
 const pendingMainImagePreview = ref('')
 const isMainDragOver = ref(false)
+const maxImageFileSize = 5 * 1024 * 1024
+const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp']
 
 // === Upload ===
 async function uploadFile(file: File): Promise<string> {
@@ -51,8 +53,36 @@ function handleMainImageSelect(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
+  if (!validateImageFile(file)) {
+    input.value = ''
+    return
+  }
   setMainImageFile(file)
   input.value = ''
+}
+
+function validateImageFile(file: File) {
+  if (!allowedImageTypes.includes(file.type)) {
+    toast.add({
+      title: 'ไม่รองรับไฟล์นี้',
+      description: 'กรุณาใช้ไฟล์ JPG, PNG หรือ WebP',
+      color: 'warning',
+      icon: 'i-lucide-image-off',
+    })
+    return false
+  }
+
+  if (file.size > maxImageFileSize) {
+    toast.add({
+      title: 'ไฟล์มีขนาดใหญ่เกินไป',
+      description: 'รูปภาพต้องมีขนาดไม่เกิน 5MB',
+      color: 'warning',
+      icon: 'i-lucide-file-warning',
+    })
+    return false
+  }
+
+  return true
 }
 
 function setMainImageFile(file: File) {
@@ -64,7 +94,7 @@ function setMainImageFile(file: File) {
 function handleMainImageDrop(event: DragEvent) {
   isMainDragOver.value = false
   const file = event.dataTransfer?.files?.[0]
-  if (file && file.type.startsWith('image/')) {
+  if (file && validateImageFile(file)) {
     setMainImageFile(file)
   }
 }
@@ -236,8 +266,36 @@ async function handleDelete(id: string) {
           <!-- รูปหลัก -->
           <div class="space-y-3">
             <div>
-              <h4 class="font-semibold text-base text-default">รูปภาพปก</h4>
-              <p class="text-sm text-muted mt-1">รูปที่จะแสดงเป็นภาพปกของบทความ แนะนำสัดส่วน 16:9</p>
+              <h4 class="font-semibold text-base text-default">
+                <AdminFieldLabel
+                  label="รูปภาพปก"
+                  tooltip="แนะนำขนาด 1600 x 900 px สัดส่วน 16:9 ใช้ WebP หรือ JPG สำหรับภาพถ่าย และ PNG เมื่อจำเป็นต้องมีพื้นหลังโปร่งใส ขนาดไม่เกิน 5MB"
+                />
+              </h4>
+              <p class="text-sm text-muted mt-1">รูปแนวนอนที่จะแสดงบนการ์ดข่าวและส่วนหัวของบทความ</p>
+            </div>
+            <div class="grid gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 sm:grid-cols-3">
+              <div class="flex items-start gap-2">
+                <UIcon name="i-lucide-scan" class="mt-0.5 size-4 shrink-0 text-primary" />
+                <div>
+                  <p class="text-sm font-semibold text-default">1600 x 900 px</p>
+                  <p class="text-xs text-muted">สัดส่วน 16:9 ขั้นต่ำ 1200 x 675 px</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-2">
+                <UIcon name="i-lucide-file-image" class="mt-0.5 size-4 shrink-0 text-primary" />
+                <div>
+                  <p class="text-sm font-semibold text-default">WebP, JPG, PNG</p>
+                  <p class="text-xs text-muted">แนะนำ WebP เพื่อให้บทความโหลดเร็ว</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-2">
+                <UIcon name="i-lucide-weight" class="mt-0.5 size-4 shrink-0 text-primary" />
+                <div>
+                  <p class="text-sm font-semibold text-default">ไม่เกิน 5MB</p>
+                  <p class="text-xs text-muted">แนะนำ 300KB-1MB ต่อรูป</p>
+                </div>
+              </div>
             </div>
             <div
               class="border-2 border-dashed rounded-2xl transition-colors duration-200 overflow-hidden relative aspect-video"
@@ -246,7 +304,7 @@ async function handleDelete(id: string) {
               @dragleave.prevent="isMainDragOver = false"
               @drop.prevent="handleMainImageDrop"
             >
-              <input type="file" ref="mainImageInput" accept="image/*" class="hidden" @change="handleMainImageSelect" />
+              <input type="file" ref="mainImageInput" accept="image/jpeg,image/png,image/webp" class="hidden" @change="handleMainImageSelect" />
               
               <template v-if="displayMainImage">
                 <img :src="displayMainImage" class="w-full h-full object-cover" />
@@ -262,7 +320,7 @@ async function handleDelete(id: string) {
                       <UIcon name="i-lucide-upload-cloud" class="size-7 text-primary" />
                     </div>
                     <p class="text-sm font-medium">คลิกเพื่อเลือกรูป หรือลากวาง</p>
-                    <p class="text-xs text-muted mt-1">รองรับ JPG, PNG, WebP ขนาดไม่เกิน 5MB</p>
+                    <p class="text-xs text-muted mt-1">JPG, PNG หรือ WebP · 16:9 · ไม่เกิน 5MB</p>
                   </div>
                 </div>
               </template>
@@ -277,16 +335,40 @@ async function handleDelete(id: string) {
             </div>
             <div class="grid grid-cols-2 gap-4">
               <UFormField label="ID (Slug)" name="id" class="w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="ID (Slug)"
+                    tooltip="รหัสและ URL ของบทความ ควรใช้ภาษาอังกฤษตัวเล็ก ตัวเลข หรือขีดกลาง เช่น healthy-tips และไม่ควรเปลี่ยนหลังเผยแพร่"
+                  />
+                </template>
                 <UInput v-model="form.id" placeholder="ex. healthy-tips" :disabled="isEditing" class="w-full" />
               </UFormField>
               <UFormField label="Tag" name="tag" class="w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="Tag"
+                    tooltip="ป้ายหมวดหรือประเภทข่าวที่แสดงบนการ์ดบทความ เช่น HEALTH, PRODUCT หรือ LIFESTYLE"
+                  />
+                </template>
                 <UInput v-model="form.tag" placeholder="ex. HEALTH" class="w-full" />
               </UFormField>
             </div>
             <UFormField label="วันที่ (แสดงผล)" name="date" class="w-full">
+              <template #label>
+                <AdminFieldLabel
+                  label="วันที่ (แสดงผล)"
+                  tooltip="ข้อความวันที่ที่ลูกค้าจะเห็นบนบทความ เช่น 20 May 2026 หรือ 20 พฤษภาคม 2569"
+                />
+              </template>
               <UInput v-model="form.date" placeholder="ex. 20 May 2026" class="w-full" />
             </UFormField>
             <UFormField label="หัวข้อบทความ" name="title" class="w-full">
+              <template #label>
+                <AdminFieldLabel
+                  label="หัวข้อบทความ"
+                  tooltip="ชื่อหลักของข่าวหรือบทความ ควรสั้น ชัดเจน และสื่อสารเนื้อหาสำคัญให้ลูกค้าเข้าใจทันที"
+                />
+              </template>
               <UInput v-model="form.title" placeholder="พิมพ์หัวข้อบทความ" class="w-full" />
             </UFormField>
           </div>
@@ -298,9 +380,21 @@ async function handleDelete(id: string) {
               <p class="text-sm text-muted mt-1">คำอธิบายสั้นและเนื้อหาฉบับเต็มของบทความ</p>
             </div>
             <UFormField label="คำอธิบายสั้นๆ (Desc)" name="desc" class="w-full">
+              <template #label>
+                <AdminFieldLabel
+                  label="คำอธิบายสั้น ๆ (Desc)"
+                  tooltip="ข้อความสรุปประมาณ 1-2 ประโยค ใช้แสดงบนการ์ดข่าวและช่วยให้ลูกค้าตัดสินใจกดอ่าน"
+                />
+              </template>
               <UTextarea v-model="form.desc" :rows="3" placeholder="พิมพ์คำอธิบาย" class="w-full" />
             </UFormField>
             <UFormField label="เนื้อหา" name="content" class="w-full">
+              <template #label>
+                <AdminFieldLabel
+                  label="เนื้อหา"
+                  tooltip="เนื้อหาฉบับเต็มของบทความ รองรับหัวข้อ ตัวหนา รายการ ลิงก์ และการจัดย่อหน้า"
+                />
+              </template>
               <RichTextEditor v-model="form.content" placeholder="พิมพ์เนื้อหาบทความที่นี่..." class="w-full" />
             </UFormField>
           </div>

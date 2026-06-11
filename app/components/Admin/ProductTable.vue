@@ -57,6 +57,8 @@ const galleryImageInput = ref<HTMLInputElement>()
 const pendingMainImage = ref<File | null>(null)
 const pendingMainImagePreview = ref('')
 const pendingGalleryFiles = ref<{ file: File; preview: string }[]>([])
+const maxImageFileSize = 5 * 1024 * 1024
+const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp']
 
 // Main image drag state
 const isMainDragOver = ref(false)
@@ -77,8 +79,36 @@ function handleMainImageSelect(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
+  if (!validateImageFile(file)) {
+    input.value = ''
+    return
+  }
   setMainImageFile(file)
   input.value = ''
+}
+
+function validateImageFile(file: File) {
+  if (!allowedImageTypes.includes(file.type)) {
+    toast.add({
+      title: 'ไม่รองรับไฟล์นี้',
+      description: 'กรุณาใช้ไฟล์ JPG, PNG หรือ WebP',
+      color: 'warning',
+      icon: 'i-lucide-image-off',
+    })
+    return false
+  }
+
+  if (file.size > maxImageFileSize) {
+    toast.add({
+      title: 'ไฟล์มีขนาดใหญ่เกินไป',
+      description: 'รูปภาพแต่ละไฟล์ต้องมีขนาดไม่เกิน 5MB',
+      color: 'warning',
+      icon: 'i-lucide-file-warning',
+    })
+    return false
+  }
+
+  return true
 }
 
 function setMainImageFile(file: File) {
@@ -91,7 +121,7 @@ function setMainImageFile(file: File) {
 function handleMainImageDrop(event: DragEvent) {
   isMainDragOver.value = false
   const file = event.dataTransfer?.files?.[0]
-  if (file && file.type.startsWith('image/')) {
+  if (file && validateImageFile(file)) {
     setMainImageFile(file)
   }
 }
@@ -101,6 +131,7 @@ function handleGalleryImageSelect(event: Event) {
   const files = input.files
   if (!files?.length) return
   for (const file of Array.from(files)) {
+    if (!validateImageFile(file)) continue
     pendingGalleryFiles.value.push({
       file,
       preview: URL.createObjectURL(file)
@@ -404,9 +435,21 @@ async function handleDelete(id: string) {
             </div>
             <div class="grid grid-cols-2 gap-4">
               <UFormField label="Product ID" required class="w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="Product ID"
+                    tooltip="รหัสภายในระบบสำหรับอ้างอิงสินค้า ควรใช้ภาษาอังกฤษตัวเล็ก ตัวเลข หรือขีดกลาง และไม่ควรเปลี่ยนหลังสร้างแล้ว"
+                  />
+                </template>
                 <UInput v-model="form.id" :disabled="isEditing" placeholder="e.g. chia-seeds" icon="i-lucide-hash" autocomplete="off" class="w-full" />
               </UFormField>
               <UFormField label="หมวดหมู่" class="w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="หมวดหมู่"
+                    tooltip="เลือกหมวดที่ใช้จัดกลุ่มสินค้า ลูกค้าจะใช้ข้อมูลนี้ค้นหาและกรองสินค้า"
+                  />
+                </template>
                 <USelect
                   v-model="form.categoryId"
                   :items="(categories || []).map((c: any) => ({ label: c.name, value: c.id }))"
@@ -417,23 +460,59 @@ async function handleDelete(id: string) {
               </UFormField>
 
               <UFormField label="ชื่อสินค้า" required class="col-span-2 w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="ชื่อสินค้า"
+                    tooltip="ชื่อหลักที่จะแสดงบนการ์ดสินค้า หน้ารายละเอียด ตะกร้า และคำสั่งซื้อ"
+                  />
+                </template>
                 <UInput v-model="form.name" placeholder="ชื่อสินค้าภาษาไทยหรืออังกฤษ" icon="i-lucide-type" autocomplete="off" class="w-full" />
               </UFormField>
 
               <UFormField label="ราคา" required class="w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="ราคา"
+                    tooltip="ราคาขายต่อหนึ่งหน่วย ใช้ตัวเลขเท่านั้น ระบบจะแสดงเป็นสกุลเงินบาท"
+                  />
+                </template>
                 <UInput v-model="form.price" type="number" placeholder="0" icon="i-lucide-banknote" autocomplete="off" class="w-full" />
               </UFormField>
               <UFormField label="Stock" required class="w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="Stock"
+                    tooltip="จำนวนสินค้าที่พร้อมขาย เมื่อเหลือ 0 ระบบจะแสดงว่าสินค้าหมด"
+                  />
+                </template>
                 <UInput v-model="form.stock" type="number" min="0" placeholder="0" icon="i-lucide-box" autocomplete="off" class="w-full" />
               </UFormField>
               <UFormField label="หน่วย" class="w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="หน่วย"
+                    tooltip="หน่วยที่ใช้เรียกสินค้า เช่น ซอง กล่อง ขวด หรือ กระปุก"
+                  />
+                </template>
                 <UInput v-model="form.unit" placeholder="e.g. ซอง" icon="i-lucide-ruler" autocomplete="off" class="w-full" />
               </UFormField>
               <UFormField label="Status" class="w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="Status"
+                    tooltip="เปิด Active เพื่อให้ลูกค้าเห็นและซื้อสินค้า ปิดเมื่อต้องการหยุดขายชั่วคราว"
+                  />
+                </template>
                 <USwitch v-model="form.is_active" label="Active" />
               </UFormField>
 
               <UFormField label="Badge" class="col-span-2 w-full" hint="ไม่บังคับ">
+                <template #label>
+                  <AdminFieldLabel
+                    label="Badge"
+                    tooltip="ข้อความสั้นบนรูปสินค้าเพื่อเน้นจุดขาย เช่น BEST SELLER, NEW หรือ LIMITED"
+                  />
+                </template>
                 <UInput v-model="form.badge" placeholder="BEST SELLER" icon="i-lucide-award" autocomplete="off" class="w-full" />
               </UFormField>
 
@@ -449,6 +528,12 @@ async function handleDelete(id: string) {
               <p class="text-sm text-muted mt-1">รายละเอียดสินค้าแบบเต็ม รองรับหัวข้อ ตัวหนา ลิสต์ ลิงก์ และการจัดย่อหน้าเหมือนหน้า News</p>
             </div>
             <UFormField label="รายละเอียดสินค้า" name="description" class="w-full" hint="ไม่บังคับ">
+              <template #label>
+                <AdminFieldLabel
+                  label="รายละเอียดสินค้า"
+                  tooltip="เนื้อหาเต็มในหน้ารายละเอียดสินค้า ใช้ใส่จุดเด่น ส่วนผสม วิธีใช้ คำเตือน หรือข้อมูลประกอบการตัดสินใจ"
+                />
+              </template>
               <RichTextEditor v-model="form.description" placeholder="พิมพ์รายละเอียดสินค้า เช่น จุดเด่น วิธีใช้ ส่วนผสม หรือข้อมูลเพิ่มเติม..." class="w-full" />
             </UFormField>
           </div>
@@ -458,8 +543,36 @@ async function handleDelete(id: string) {
           <!-- ═══════════ รูปภาพหลัก ═══════════ -->
           <div class="space-y-4">
             <div>
-              <h4 class="font-semibold text-base text-default">รูปภาพหลัก</h4>
-              <p class="text-sm text-muted mt-1">รูปที่จะแสดงเป็นภาพปกของสินค้า แนะนำใช้ภาพสัดส่วน 1:1</p>
+              <h4 class="font-semibold text-base text-default">
+                <AdminFieldLabel
+                  label="รูปภาพหลัก"
+                  tooltip="แนะนำขนาด 1200 x 1200 px สัดส่วน 1:1 ใช้ WebP หรือ JPG สำหรับภาพถ่าย และ PNG เมื่อจำเป็นต้องมีพื้นหลังโปร่งใส ขนาดไม่เกิน 5MB"
+                />
+              </h4>
+              <p class="text-sm text-muted mt-1">รูปที่จะแสดงเป็นภาพปกของสินค้าในการ์ดและหน้ารายละเอียด</p>
+            </div>
+            <div class="grid gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 sm:grid-cols-3">
+              <div class="flex items-start gap-2">
+                <UIcon name="i-lucide-scan" class="mt-0.5 size-4 shrink-0 text-primary" />
+                <div>
+                  <p class="text-sm font-semibold text-default">1200 x 1200 px</p>
+                  <p class="text-xs text-muted">สัดส่วน 1:1 อย่างน้อย 800 x 800 px</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-2">
+                <UIcon name="i-lucide-file-image" class="mt-0.5 size-4 shrink-0 text-primary" />
+                <div>
+                  <p class="text-sm font-semibold text-default">WebP, JPG, PNG</p>
+                  <p class="text-xs text-muted">แนะนำ WebP เพื่อให้หน้าเว็บโหลดเร็ว</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-2">
+                <UIcon name="i-lucide-weight" class="mt-0.5 size-4 shrink-0 text-primary" />
+                <div>
+                  <p class="text-sm font-semibold text-default">ไม่เกิน 5MB</p>
+                  <p class="text-xs text-muted">แนะนำ 200-800KB ต่อรูป</p>
+                </div>
+              </div>
             </div>
             <div class="space-y-4">
               <!-- มีรูปแล้ว — แสดง preview -->
@@ -490,12 +603,20 @@ async function handleDelete(id: string) {
                 </div>
                 <div class="text-center">
                   <p class="text-sm font-medium">คลิกเพื่อเลือกรูป หรือลากวาง</p>
-                  <p class="text-xs text-muted mt-1">รองรับ JPG, PNG, WebP ขนาดไม่เกิน 5MB</p>
+                  <p class="text-xs text-muted mt-1">JPG, PNG หรือ WebP · 1:1 · ไม่เกิน 5MB</p>
                 </div>
               </button>
 
-              <UInput v-model="form.image" placeholder="หรือวาง URL รูปภาพ" icon="i-lucide-link" autocomplete="off" class="w-full" />
-              <input ref="mainImageInput" type="file" accept="image/*" class="hidden" @change="handleMainImageSelect" />
+              <UFormField label="URL รูปภาพหลัก" class="w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="URL รูปภาพหลัก"
+                    tooltip="ใช้เมื่อมีลิงก์รูปภาพออนไลน์อยู่แล้ว สามารถวาง URL แทนการอัปโหลดไฟล์ได้"
+                  />
+                </template>
+                <UInput v-model="form.image" placeholder="หรือวาง URL รูปภาพ" icon="i-lucide-link" autocomplete="off" class="w-full" />
+              </UFormField>
+              <input ref="mainImageInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="handleMainImageSelect" />
             </div>
           </div>
 
@@ -509,6 +630,12 @@ async function handleDelete(id: string) {
             </div>
             <div>
               <UFormField label="ป้ายกำกับสินค้า" hint="พิมพ์ tag แล้วกดปุ่มเพิ่ม" class="w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="ป้ายกำกับสินค้า"
+                    tooltip="คำสั้น ๆ ที่อธิบายคุณสมบัติสินค้า เช่น Organic, Non-GMO หรือ Sugar Free กดปุ่มเพิ่มเพื่อบันทึกแต่ละคำ"
+                  />
+                </template>
                 <div class="space-y-3">
                   <div class="flex gap-2">
                     <UInput
@@ -557,7 +684,12 @@ async function handleDelete(id: string) {
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <div>
-                <h4 class="font-semibold text-base text-default">Benefits</h4>
+                <h4 class="font-semibold text-base text-default">
+                  <AdminFieldLabel
+                    label="Benefits"
+                    tooltip="รายการคุณประโยชน์หรือจุดเด่นของสินค้า แต่ละรายการประกอบด้วย icon หัวข้อ และคำอธิบายสั้น ๆ"
+                  />
+                </h4>
                 <p class="text-sm text-muted mt-1">คุณสมบัติพิเศษและจุดเด่นของสินค้า (แสดงเป็นรายการ)</p>
               </div>
               <UBadge :label="`${form.benefits.length}`" variant="subtle" size="sm" rounded="full" />
@@ -576,9 +708,21 @@ async function handleDelete(id: string) {
                 />
                 <div class="grid grid-cols-2 gap-4 pr-6">
                   <UFormField label="Icon" class="w-full">
+                    <template #label>
+                      <AdminFieldLabel
+                        label="Icon"
+                        tooltip="ไอคอนประกอบ Benefit เลือกจากรายการด้านล่างเพื่อให้รูปแบบถูกต้องและแสดงผลได้"
+                      />
+                    </template>
                     <UInput v-model="benefit.icon" placeholder="เลือก icon ด้านล่าง" icon="i-lucide-smile" autocomplete="off" class="w-full" />
                   </UFormField>
                   <UFormField label="Title" class="w-full">
+                    <template #label>
+                      <AdminFieldLabel
+                        label="Title"
+                        tooltip="ชื่อสั้นของคุณประโยชน์ เช่น Heart Health หรือ High Protein"
+                      />
+                    </template>
                     <UInput v-model="benefit.title" placeholder="Heart Health" autocomplete="off" class="w-full" />
                   </UFormField>
                 </div>
@@ -601,6 +745,12 @@ async function handleDelete(id: string) {
                   </div>
                 </div>
                 <UFormField label="รายละเอียด" class="w-full">
+                  <template #label>
+                    <AdminFieldLabel
+                      label="รายละเอียด"
+                      tooltip="คำอธิบายสั้น ๆ ว่าสินค้าให้คุณประโยชน์ข้อนี้อย่างไร"
+                    />
+                  </template>
                   <UInput v-model="benefit.text" placeholder="คำอธิบายสั้นๆ" autocomplete="off" class="w-full" />
                 </UFormField>
               </div>
@@ -615,7 +765,12 @@ async function handleDelete(id: string) {
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <div>
-                <h4 class="font-semibold text-base text-default">Rituals</h4>
+                <h4 class="font-semibold text-base text-default">
+                  <AdminFieldLabel
+                    label="Rituals"
+                    tooltip="ขั้นตอนการใช้หรือรับประทานสินค้า ระบบจะแสดงเรียงตามลำดับที่เพิ่ม"
+                  />
+                </h4>
                 <p class="text-sm text-muted mt-1">ขั้นตอนการใช้งานหรือวิธีรับประทาน (แสดงตามลำดับ)</p>
               </div>
               <UBadge :label="`${form.rituals.length}`" variant="subtle" size="sm" rounded="full" />
@@ -637,9 +792,21 @@ async function handleDelete(id: string) {
                   </div>
                   <div class="flex-1 space-y-4">
                     <UFormField label="Title" class="w-full">
+                      <template #label>
+                        <AdminFieldLabel
+                          label="Title"
+                          tooltip="ชื่อขั้นตอนแบบสั้น เช่น ตักผลิตภัณฑ์ หรือ ผสมกับเครื่องดื่ม"
+                        />
+                      </template>
                       <UInput v-model="ritual.title" placeholder="e.g. ผสมเครื่องดื่ม" autocomplete="off" class="w-full" />
                     </UFormField>
                     <UFormField label="รายละเอียด" class="w-full">
+                      <template #label>
+                        <AdminFieldLabel
+                          label="รายละเอียด"
+                          tooltip="คำอธิบายวิธีทำของขั้นตอนนี้ เช่น ปริมาณ เวลา หรือข้อแนะนำในการใช้"
+                        />
+                      </template>
                       <UTextarea v-model="ritual.text" placeholder="คำอธิบายขั้นตอน" :rows="2" autoresize autocomplete="off" class="w-full" />
                     </UFormField>
                   </div>
@@ -656,10 +823,25 @@ async function handleDelete(id: string) {
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <div>
-                <h4 class="font-semibold text-base text-default">Gallery</h4>
+                <h4 class="font-semibold text-base text-default">
+                  <AdminFieldLabel
+                    label="Gallery"
+                    tooltip="รูปเพิ่มเติมควรกว้างอย่างน้อย 1200 px ใช้สัดส่วนเดียวกันทั้งชุด แนะนำ WebP หรือ JPG ขนาด 200-800KB และไม่เกิน 5MB ต่อรูป"
+                  />
+                </h4>
                 <p class="text-sm text-muted mt-1">รูปภาพมุมอื่นๆ ของสินค้าเพื่อประกอบการตัดสินใจ</p>
               </div>
               <UBadge :label="`${form.gallery.length + pendingGalleryFiles.length}`" variant="subtle" size="sm" rounded="full" />
+            </div>
+            <div class="flex items-start gap-3 rounded-xl border border-default bg-elevated/50 p-4">
+              <UIcon name="i-lucide-images" class="mt-0.5 size-5 shrink-0 text-primary" />
+              <div>
+                <p class="text-sm font-semibold text-default">คำแนะนำสำหรับรูป Gallery</p>
+                <p class="mt-1 text-sm leading-6 text-muted">
+                  ใช้รูปกว้างอย่างน้อย 1200 px และใช้สัดส่วนเดียวกันทั้งชุด เช่น 1:1 แนะนำ 3-6 รูป ได้แก่ ด้านหน้า ด้านหลัง ส่วนผสม วิธีใช้ และภาพสินค้าในสถานการณ์จริง
+                </p>
+                <p class="mt-1 text-xs text-muted">รองรับ WebP, JPG และ PNG · ไม่เกิน 5MB ต่อไฟล์ · แนะนำ 200-800KB</p>
+              </div>
             </div>
             <div class="space-y-5">
               <div class="grid grid-cols-3 sm:grid-cols-4 gap-4">
@@ -697,11 +879,19 @@ async function handleDelete(id: string) {
                 <USeparator class="flex-1" />
               </div>
 
-              <div class="flex gap-2">
-                <UInput v-model="newGalleryUrl" placeholder="วาง URL รูปภาพตรงนี้" class="flex-1" icon="i-lucide-link" autocomplete="off" @keydown.enter.prevent="addGalleryImage" />
-                <UButton icon="i-lucide-plus" label="เพิ่ม" color="neutral" variant="soft" @click="addGalleryImage" />
-              </div>
-              <input ref="galleryImageInput" type="file" accept="image/*" multiple class="hidden" @change="handleGalleryImageSelect" />
+              <UFormField label="URL รูป Gallery" class="w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="URL รูป Gallery"
+                    tooltip="วางลิงก์รูปภาพออนไลน์เพิ่มเติม แล้วกดเพิ่ม รูปจะถูกนำไปแสดงใน Gallery ของสินค้า"
+                  />
+                </template>
+                <div class="flex gap-2">
+                  <UInput v-model="newGalleryUrl" placeholder="วาง URL รูปภาพตรงนี้" class="flex-1" icon="i-lucide-link" autocomplete="off" @keydown.enter.prevent="addGalleryImage" />
+                  <UButton icon="i-lucide-plus" label="เพิ่ม" color="neutral" variant="soft" @click="addGalleryImage" />
+                </div>
+              </UFormField>
+              <input ref="galleryImageInput" type="file" accept="image/jpeg,image/png,image/webp" multiple class="hidden" @change="handleGalleryImageSelect" />
             </div>
           </div>
 

@@ -193,6 +193,12 @@ function getParentName(parentId: string | null) {
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <UFormField label="Category ID" required class="w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="Category ID"
+                    tooltip="รหัสภายในระบบสำหรับอ้างอิงหมวดหมู่ ควรใช้ภาษาอังกฤษตัวเล็ก ตัวเลข หรือขีดกลาง และไม่ควรเปลี่ยนหลังสร้างแล้ว"
+                  />
+                </template>
                 <UInput
                   v-model="form.id"
                   :disabled="isEditing"
@@ -204,6 +210,12 @@ function getParentName(parentId: string | null) {
               </UFormField>
 
               <UFormField label="Slug" required class="w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="Slug"
+                    tooltip="ข้อความที่ใช้เป็นส่วนหนึ่งของ URL เช่น fast-food ควรสั้น อ่านง่าย และไม่เว้นวรรค"
+                  />
+                </template>
                 <UInput
                   v-model="form.slug"
                   placeholder="e.g. fast-food"
@@ -215,6 +227,12 @@ function getParentName(parentId: string | null) {
             </div>
 
             <UFormField label="ชื่อหมวดหมู่" required class="w-full">
+              <template #label>
+                <AdminFieldLabel
+                  label="ชื่อหมวดหมู่"
+                  tooltip="ชื่อที่ลูกค้าจะเห็นในหน้าสินค้าและตัวกรองหมวดหมู่ เช่น เครื่องดื่ม หรือ โปรตีน"
+                />
+              </template>
               <UInput
                 v-model="form.name"
                 placeholder="เช่น Fast Food"
@@ -234,6 +252,12 @@ function getParentName(parentId: string | null) {
             </div>
 
             <UFormField label="หมวดหมู่หลัก" class="w-full">
+              <template #label>
+                <AdminFieldLabel
+                  label="หมวดหมู่หลัก"
+                  tooltip="เลือกเมื่อต้องการให้หมวดนี้เป็นหมวดย่อย หากเป็นหมวดหลักให้เลือก ไม่มี"
+                />
+              </template>
               <USelect
                 v-model="form.parentId"
                 :items="[
@@ -251,7 +275,12 @@ function getParentName(parentId: string | null) {
 
           <div class="space-y-4">
             <div>
-              <h4 class="text-base font-semibold text-default">สถานะการแสดงผล</h4>
+              <h4 class="text-base font-semibold text-default">
+                <AdminFieldLabel
+                  label="สถานะการแสดงผล"
+                  tooltip="เปิดเพื่อให้หมวดหมู่และสินค้าในหมวดแสดงแก่ลูกค้า ปิดเพื่อซ่อนจากหน้าร้านชั่วคราว"
+                />
+              </h4>
               <p class="mt-1 text-sm text-muted">ควบคุมว่าหมวดหมู่นี้จะปรากฏบนหน้าสินค้าฝั่งลูกค้าหรือไม่</p>
             </div>
 

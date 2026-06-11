@@ -14,9 +14,14 @@ export default defineEventHandler(async (event) => {
   }
 
   // ตรวจสอบ type ให้เป็นรูปภาพเท่านั้น
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
   if (!allowedTypes.includes(file.type || '')) {
-    throw createError({ statusCode: 400, statusMessage: 'Only image files are allowed (jpg, png, webp, gif)' })
+    throw createError({ statusCode: 400, statusMessage: 'Only JPG, PNG and WebP image files are allowed' })
+  }
+
+  const maxFileSize = 5 * 1024 * 1024
+  if (file.data.length > maxFileSize) {
+    throw createError({ statusCode: 400, statusMessage: 'Image file must not exceed 5MB' })
   }
 
   // สร้างชื่อไฟล์แบบ unique
