@@ -10,6 +10,7 @@
     "dev": "nuxt dev --port 3000 --dotenv .env.development",
     "prod": "nuxt dev --port 3000 --dotenv .env.production",
     "build:dev": "nuxt build --dotenv .env.development",
+    "build:uat": "nuxt build --dotenv .env.uat",
     "build:prod": "nuxt build --dotenv .env.production",
     "run:build": "node .output/server/index.mjs"
   },
