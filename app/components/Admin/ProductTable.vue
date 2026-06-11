@@ -316,12 +316,22 @@ async function handleSave() {
 async function handleDelete(id: string) {
   if (!confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่?')) return
   try {
-    const result = await $authFetch<{ message?: string; deleted?: boolean; deactivated?: boolean }>(`/api/products/${id}`, { method: 'DELETE' })
+    const result = await $authFetch<{
+      message?: string
+      deleted?: boolean
+      deactivated?: boolean
+      fileCleanupFailed?: boolean
+      deletedFiles?: number
+    }>(`/api/products/${id}`, { method: 'DELETE' })
     toast.add({
-      title: result.deactivated ? 'ปิดการขายสินค้าแทน' : 'ลบสินค้าเรียบร้อย',
+      title: result.deactivated
+        ? 'ปิดการขายสินค้าแทน'
+        : result.fileCleanupFailed
+          ? 'ลบสินค้าแล้ว แต่ลบรูปไม่ครบ'
+          : 'ลบสินค้าเรียบร้อย',
       description: result.message,
-      color: result.deactivated ? 'warning' : 'success',
-      icon: result.deactivated ? 'i-lucide-circle-alert' : 'i-lucide-check-circle',
+      color: result.deactivated || result.fileCleanupFailed ? 'warning' : 'success',
+      icon: result.deactivated || result.fileCleanupFailed ? 'i-lucide-circle-alert' : 'i-lucide-check-circle',
     })
     emit('delete', id)
   } catch (err: any) {
