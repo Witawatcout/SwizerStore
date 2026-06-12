@@ -10,12 +10,15 @@ const route = useRoute();
 const selectedStatus = ref("all");
 const selectedPaymentMethod = ref("all");
 const selectedDate = ref("");
+const searchInput = ref("");
+const searchQuery = ref("");
 const selectedOrder = ref<any>(null);
 const isDetailOpen = ref(false);
 const isSendingEmail = ref(false);
 const trackingNumberForm = ref("");
 const page = ref(1);
 const pageSize = ref(10);
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
 const statusItems = [
   { label: "ทุกสถานะ", value: "all" },
@@ -46,21 +49,20 @@ const queryParams = computed(() => {
   if (selectedStatus.value !== "all") params.set("status", selectedStatus.value);
   if (selectedPaymentMethod.value !== "all") params.set("payment_method", selectedPaymentMethod.value);
   if (selectedDate.value) params.set("date", selectedDate.value);
+  if (searchQuery.value) params.set("search", searchQuery.value);
+  params.set("page", String(page.value));
+  params.set("page_size", String(pageSize.value));
   const query = params.toString();
   return `/api/admin/orders${query ? `?${query}` : ""}`;
 });
 
-const { data: orders, status, refresh } = useAuthFetch<any[]>(queryParams);
+const { data: orders, status, refresh } = useAuthFetch<any>(queryParams);
 const loading = computed(() => status.value === "pending" || status.value === "idle");
-const orderList = computed(() => orders.value || []);
-const totalOrders = computed(() => orderList.value.length);
-const totalPages = computed(() => Math.max(1, Math.ceil(totalOrders.value / Number(pageSize.value || 10))));
+const orderList = computed(() => orders.value?.items || []);
+const totalOrders = computed(() => Number(orders.value?.pagination?.total || 0));
+const totalPages = computed(() => Number(orders.value?.pagination?.totalPages || 1));
 const startItem = computed(() => (totalOrders.value ? (page.value - 1) * Number(pageSize.value) + 1 : 0));
 const endItem = computed(() => Math.min(page.value * Number(pageSize.value), totalOrders.value));
-const paginatedOrders = computed(() => {
-  const start = (page.value - 1) * Number(pageSize.value);
-  return orderList.value.slice(start, start + Number(pageSize.value));
-});
 
 const columns: TableColumn<any>[] = [
   { accessorKey: "id", header: "เลขคำสั่งซื้อ" },
@@ -74,8 +76,19 @@ const columns: TableColumn<any>[] = [
   { id: "actions", header: "" },
 ];
 
-watch([selectedStatus, selectedPaymentMethod, selectedDate, pageSize], () => {
+watch([selectedStatus, selectedPaymentMethod, selectedDate, pageSize, searchQuery], () => {
   page.value = 1;
+});
+
+watch(searchInput, (value) => {
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    searchQuery.value = value.trim();
+  }, 350);
+});
+
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer);
 });
 
 watch(totalPages, (value) => {
@@ -247,7 +260,24 @@ watch(
 
     <template #body>
       <div class="p-6 space-y-5">
-        <div class="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_1fr_auto]">
+        <div class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(18rem,1.4fr)_1fr_1fr_1fr_auto]">
+          <UInput
+            v-model="searchInput"
+            icon="i-lucide-search"
+            placeholder="ค้นหา Order, ลูกค้า, สินค้า, หมวดหมู่ หรือเลขพัสดุ"
+            class="w-full"
+          >
+            <template v-if="searchInput" #trailing>
+              <UButton
+                icon="i-lucide-x"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                aria-label="ล้างคำค้นหา"
+                @click="searchInput = ''"
+              />
+            </template>
+          </UInput>
           <USelect v-model="selectedStatus" :items="statusItems" icon="i-lucide-list-filter" />
           <USelect v-model="selectedPaymentMethod" :items="paymentItems" icon="i-lucide-credit-card" />
           <UInput v-model="selectedDate" type="date" icon="i-lucide-calendar" />
@@ -255,7 +285,7 @@ watch(
         </div>
 
         <div class="rounded-lg border border-default bg-default">
-          <UTable :data="paginatedOrders" :columns="columns" :loading="loading">
+          <UTable :data="orderList" :columns="columns" :loading="loading">
             <template #payment_method-cell="{ row }">
               <span class="text-sm">{{ paymentMethodLabel(row.original.payment_method) }}</span>
             </template>
@@ -302,7 +332,7 @@ watch(
               <div class="py-10 text-center">
                 <UIcon name="i-lucide-inbox" class="mx-auto mb-2 size-8 text-muted" />
                 <p class="font-medium">ไม่พบคำสั่งซื้อ</p>
-                <p class="text-sm text-muted">ลองเปลี่ยน filter หรือเลือกวันที่อื่น</p>
+                <p class="text-sm text-muted">ลองเปลี่ยนคำค้นหา ตัวกรอง หรือวันที่</p>
               </div>
             </template>
           </UTable>

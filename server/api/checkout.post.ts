@@ -96,7 +96,7 @@ export default defineEventHandler(async (event) => {
 
     const placeholders = items.map(() => "?").join(",");
     const [products] = await conn.execute<any[]>(
-      `SELECT id, name, price, stock, is_active
+      `SELECT id, category_id, name, price, stock, is_active
        FROM products
        WHERE id IN (${placeholders}) FOR UPDATE`,
       items.map((item) => item.id)
@@ -132,6 +132,7 @@ export default defineEventHandler(async (event) => {
       const unitPrice = Number(product.price);
       return {
         product_id: item.id,
+        category_id: String(product.category_id || "").trim(),
         product_name: product.name,
         unit_price: unitPrice,
         quantity: item.quantity,
@@ -162,7 +163,7 @@ export default defineEventHandler(async (event) => {
       ]
     );
 
-    orderId = await generateOrderId(conn);
+    orderId = await generateOrderId(conn, orderItems);
 
     await conn.execute(
       `INSERT INTO orders

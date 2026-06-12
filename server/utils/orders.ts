@@ -3,7 +3,35 @@ import { getPool } from "~~/server/utils/db";
 import { randomBytes } from "node:crypto";
 import { sendOrderPaidEmails } from "~~/server/utils/orderEmails";
 
-export async function generateOrderId(conn: PoolConnection) {
+interface OrderIdItem {
+  product_id: string;
+  category_id: string;
+}
+
+function normalizeOrderCode(value: string) {
+  return String(value || "")
+    .trim()
+    .normalize("NFKD")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toUpperCase();
+}
+
+function categoryCode(categoryId: string) {
+  const normalized = normalizeOrderCode(categoryId).replace(/-/g, "");
+  return normalized.slice(0, 8) || "UNCAT";
+}
+
+function productCode(productId: string, categoryId: string) {
+  const normalizedProduct = normalizeOrderCode(productId);
+  const normalizedCategory = normalizeOrderCode(categoryId);
+  const withoutCategory = normalizedProduct.startsWith(`${normalizedCategory}-`)
+    ? normalizedProduct.slice(normalizedCategory.length + 1)
+    : normalizedProduct;
+  return withoutCategory.replace(/-/g, "").slice(0, 10) || "PRODUCT";
+}
+
+export async function generateOrderId(conn: PoolConnection, items: OrderIdItem[]) {
   const now = new Date();
   const datePart = [
     now.getFullYear(),
@@ -11,9 +39,18 @@ export async function generateOrderId(conn: PoolConnection) {
     String(now.getDate()).padStart(2, "0"),
   ].join("");
 
+  const uniqueCategories = [...new Set(items.map((item) => String(item.category_id || "").trim()))];
+  const uniqueProducts = [...new Map(items.map((item) => [item.product_id, item])).values()];
+  const categoryPart = uniqueCategories.length === 1
+    ? categoryCode(uniqueCategories[0])
+    : `MIX${uniqueCategories.length}`;
+  const productPart = uniqueProducts.length === 1
+    ? productCode(uniqueProducts[0].product_id, uniqueProducts[0].category_id)
+    : `P${String(uniqueProducts.length).padStart(2, "0")}`;
+
   for (let attempt = 0; attempt < 8; attempt++) {
-    const suffix = randomBytes(4).toString("base64url").replace(/[^A-Z0-9]/gi, "").toUpperCase().slice(0, 6);
-    const id = `ORD-${datePart}-${suffix}`;
+    const suffix = randomBytes(2).toString("hex").toUpperCase();
+    const id = `ORD-${datePart}-${categoryPart}-${productPart}-${suffix}`;
     const [rows] = await conn.execute<any[]>("SELECT id FROM orders WHERE id = ? LIMIT 1", [id]);
     if (!rows.length) return id;
   }
