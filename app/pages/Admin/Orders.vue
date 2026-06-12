@@ -9,6 +9,7 @@ const route = useRoute();
 
 const selectedStatus = ref("all");
 const selectedPaymentMethod = ref("all");
+const selectedCategory = ref("all");
 const selectedDate = ref("");
 const searchInput = ref("");
 const searchQuery = ref("");
@@ -38,6 +39,15 @@ const paymentItems = [
   { label: "พร้อมเพย์", value: "promptpay" },
 ];
 
+const { data: categoriesData } = useAuthFetch<any[]>("/api/categories?includeInactive=1");
+const categoryItems = computed(() => [
+  { label: "ทุกหมวดหมู่", value: "all" },
+  ...(categoriesData.value || []).map((category) => ({
+    label: Number(category.is_active ?? 1) === 1 ? category.name : `${category.name} (ปิดใช้งาน)`,
+    value: String(category.id),
+  })),
+]);
+
 const pageSizeItems = [
   { label: "10 รายการ/หน้า", value: 10 },
   { label: "20 รายการ/หน้า", value: 20 },
@@ -48,6 +58,7 @@ const queryParams = computed(() => {
   const params = new URLSearchParams();
   if (selectedStatus.value !== "all") params.set("status", selectedStatus.value);
   if (selectedPaymentMethod.value !== "all") params.set("payment_method", selectedPaymentMethod.value);
+  if (selectedCategory.value !== "all") params.set("category_id", selectedCategory.value);
   if (selectedDate.value) params.set("date", selectedDate.value);
   if (searchQuery.value) params.set("search", searchQuery.value);
   params.set("page", String(page.value));
@@ -76,7 +87,7 @@ const columns: TableColumn<any>[] = [
   { id: "actions", header: "" },
 ];
 
-watch([selectedStatus, selectedPaymentMethod, selectedDate, pageSize, searchQuery], () => {
+watch([selectedStatus, selectedPaymentMethod, selectedCategory, selectedDate, pageSize, searchQuery], () => {
   page.value = 1;
 });
 
@@ -260,7 +271,7 @@ watch(
 
     <template #body>
       <div class="p-6 space-y-5">
-        <div class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(18rem,1.4fr)_1fr_1fr_1fr_auto]">
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(18rem,1.4fr)_1fr_1fr_1fr_1fr_auto]">
           <UInput
             v-model="searchInput"
             icon="i-lucide-search"
@@ -280,8 +291,9 @@ watch(
           </UInput>
           <USelect v-model="selectedStatus" :items="statusItems" icon="i-lucide-list-filter" />
           <USelect v-model="selectedPaymentMethod" :items="paymentItems" icon="i-lucide-credit-card" />
+          <USelect v-model="selectedCategory" :items="categoryItems" icon="i-lucide-tags" />
           <UInput v-model="selectedDate" type="date" icon="i-lucide-calendar" />
-          <USelect v-model="pageSize" :items="pageSizeItems" icon="i-lucide-rows-3" class="lg:w-44" />
+          <USelect v-model="pageSize" :items="pageSizeItems" icon="i-lucide-rows-3" class="xl:w-44" />
         </div>
 
         <div class="rounded-lg border border-default bg-default">

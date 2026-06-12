@@ -18,6 +18,16 @@ export default defineEventHandler(async (event) => {
     where.push("o.payment_method = ?");
     params.push(filters.payment_method);
   }
+  if (filters.category_id) {
+    where.push(`EXISTS (
+      SELECT 1
+      FROM order_items category_oi
+      JOIN products category_p ON category_p.id = category_oi.product_id
+      WHERE category_oi.order_id = o.id
+        AND category_p.category_id = ?
+    )`);
+    params.push(filters.category_id);
+  }
   if (filters.date) {
     where.push("DATE(o.created_at) = ?");
     params.push(filters.date);

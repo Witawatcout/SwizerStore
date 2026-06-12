@@ -135,7 +135,7 @@ onMounted(loadProfile)
       </div>
 
       <form v-else class="grid items-start gap-6 lg:grid-cols-[360px_minmax(0,1fr)]" @submit.prevent="saveProfile">
-        <aside class="sticky top-28 space-y-5 rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
+        <aside class="space-y-5 rounded-lg border border-neutral-200 bg-white p-6 shadow-sm lg:sticky lg:top-28">
           <div class="flex items-center gap-4">
             <UAvatar :alt="account.username" size="xl" class="ring-2 ring-primary-500/20" />
             <div class="min-w-0">
