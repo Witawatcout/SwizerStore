@@ -19,11 +19,25 @@ let scrollTicking = false
 
 const activeLanguage = computed(() => $swizerTranslate?.language?.value || 'th')
 const translationLoading = computed(() => Boolean($swizerTranslate?.loading?.value))
-const translationFlagSrc = computed(() => (activeLanguage.value === 'en' ? '/flags/th.svg' : '/flags/gb.svg'))
-const translationFlagAlt = computed(() => (activeLanguage.value === 'en' ? 'ธงชาติไทย' : 'ธงชาติอังกฤษ'))
-const translationButtonTooltip = computed(() =>
-  activeLanguage.value === 'en' ? 'กลับเป็นภาษาไทย' : 'แปลเป็นภาษาอังกฤษ',
+const languageOptions = [
+  { code: 'th', label: 'ไทย', flag: '/flags/th.svg', alt: 'ธงชาติไทย' },
+  { code: 'en', label: 'English', flag: '/flags/gb.svg', alt: 'ธงชาติอังกฤษ' },
+  { code: 'zh', label: '中文', flag: '/flags/cn.svg', alt: 'ธงชาติจีน' },
+]
+const activeLanguageOption = computed(() =>
+  languageOptions.find((option) => option.code === activeLanguage.value) || languageOptions[0],
 )
+const translationFlagSrc = computed(() => activeLanguageOption.value.flag)
+const translationFlagAlt = computed(() => activeLanguageOption.value.alt)
+const translationButtonTooltip = computed(() => `ภาษา: ${activeLanguageOption.value.label}`)
+const translationMenuItems = computed(() => [
+  languageOptions.map((option) => ({
+    label: option.label,
+    avatar: { src: option.flag, alt: option.alt },
+    icon: activeLanguage.value === option.code ? 'i-lucide-check' : undefined,
+    onSelect: () => setTranslationLanguage(option.code),
+  })),
+])
 
 const navShellStyle = computed(() => ({
   transform: isNavVisible.value ? 'translate3d(0, 0, 0)' : 'translate3d(0, -100%, 0)',
@@ -108,8 +122,8 @@ function signOut() {
   navigateTo('/')
 }
 
-function toggleTranslation() {
-  $swizerTranslate?.toggleLanguage()
+function setTranslationLanguage(language: string) {
+  $swizerTranslate?.setLanguage?.(language)
 }
 
 function updateNavbarVisibility() {
@@ -181,12 +195,12 @@ watch(
 
     <template #right>
       <div class="flex items-center gap-2 md:gap-3 lg:gap-4">
-        <UTooltip :text="translationButtonTooltip">
+        <UDropdownMenu :items="translationMenuItems" :ui="{ content: 'notranslate w-44' }">
           <button
             class="notranslate hidden size-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] p-0 text-white transition-colors hover:bg-white/10 sm:inline-flex lg:size-12"
             translate="no"
-            aria-label="เปลี่ยนภาษา"
-            @click="toggleTranslation"
+            aria-label="เลือกภาษา"
+            :title="translationButtonTooltip"
           >
             <Icon v-if="translationLoading" name="i-lucide-loader-circle" class="size-5 animate-spin" />
             <img
@@ -197,7 +211,7 @@ watch(
               translate="no"
             />
           </button>
-        </UTooltip>
+        </UDropdownMenu>
 
         <UTooltip v-if="isAdmin" text="Admin">
           <UButton
@@ -273,17 +287,20 @@ watch(
         />
 
         <div class="border-t border-neutral-200 pt-4">
-          <UButton
-            :label="translationButtonTooltip"
-            :avatar="{ src: translationFlagSrc, alt: translationFlagAlt }"
-            color="neutral"
-            variant="soft"
-            block
-            class="notranslate mb-3"
-            translate="no"
-            :loading="translationLoading"
-            @click="toggleTranslation"
-          />
+          <div class="notranslate mb-3 grid grid-cols-3 gap-2" translate="no">
+            <button
+              v-for="option in languageOptions"
+              :key="option.code"
+              type="button"
+              class="flex min-h-12 items-center justify-center gap-2 rounded-2xl border px-2 text-sm font-black transition-colors"
+              :class="activeLanguage === option.code ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50'"
+              :disabled="translationLoading"
+              @click="setTranslationLanguage(option.code)"
+            >
+              <img :src="option.flag" :alt="option.alt" class="h-4 w-6 rounded-[2px] object-cover ring-1 ring-neutral-200" translate="no" />
+              <span>{{ option.label }}</span>
+            </button>
+          </div>
 
           <div v-if="isLoggedIn" class="space-y-3">
             <div class="text-sm text-neutral-500">

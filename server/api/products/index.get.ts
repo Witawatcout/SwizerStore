@@ -1,6 +1,7 @@
 import { getOptionalAuth } from "~~/server/utils/auth";
 import { isAdminRole } from "~~/server/utils/adminAccess";
 import { query } from "@@/server/utils/db";
+import { ensureProductPricingSchema, getProductCategoryMap } from "~~/server/utils/products";
 
 function parseJson(value: any) {
   if (typeof value !== "string") return value || [];
@@ -13,6 +14,7 @@ function parseJson(value: any) {
 
 export default defineEventHandler(async (event) => {
   try {
+    await ensureProductPricingSchema();
     const auth = getOptionalAuth(event);
     const includeInactive = getQuery(event).includeInactive === "1" && isAdminRole(auth?.role);
 
@@ -28,11 +30,17 @@ export default defineEventHandler(async (event) => {
       }
       ORDER BY p.name ASC
     `);
+    const categoryMap = await getProductCategoryMap(rows.map((row: any) => row.id));
 
     return rows.map((row: any) => ({
       ...row,
+      price: Number(row.price || 0),
+      sale_price: row.sale_price === null ? null : Number(row.sale_price),
       stock: Number(row.stock || 0),
       is_active: Number(row.is_active ?? 1),
+      is_featured: Number(row.is_featured ?? 0),
+      featured_order: Number(row.featured_order ?? 0),
+      category_ids: categoryMap.get(String(row.id)) || (row.category_id ? [String(row.category_id)] : []),
       tags: parseJson(row.tags),
       benefits: parseJson(row.benefits),
       rituals: parseJson(row.rituals),

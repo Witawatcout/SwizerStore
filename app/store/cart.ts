@@ -33,6 +33,9 @@ export const useCartStore = defineStore('cart', () => {
       const updated = [...items.value]
       updated[existingIndex] = {
         ...updated[existingIndex],
+        name: product.name,
+        price: productPrice,
+        image: product.image ?? updated[existingIndex].image,
         quantity: updated[existingIndex].quantity + quantity
       }
       items.value = updated

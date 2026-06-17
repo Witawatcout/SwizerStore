@@ -11,24 +11,109 @@ const props = defineProps<{
 const emit = defineEmits<{
   save: [product: any, isEdit: boolean]
   delete: [id: string]
+  bulkStatusUpdated: []
+  bulkDeleted: []
 }>()
 
 const toast = useToast()
 const isModalOpen = ref(false)
 const isEditing = ref(false)
 const isSaving = ref(false)
+const bulkAction = ref<'activate' | 'deactivate' | 'delete' | null>(null)
+const isBulkUpdating = computed(() => bulkAction.value !== null)
+const selectedProductIds = ref<string[]>([])
+const searchQuery = ref('')
 const selectedCategory = ref('all')
 const selectedStatus = ref('all')
+
+const hierarchicalCategoryOptions = computed(() => {
+  const categories = props.categories || []
+  const categoryIds = new Set(categories.map((category: any) => String(category.id)))
+  const childrenByParent = new Map<string, any[]>()
+  const roots: any[] = []
+  const options: { label: string; value: string; depth: number; categoryType: string; parentPath: string }[] = []
+  const visited = new Set<string>()
+  const sortByName = (a: any, b: any) => String(a.name || '').localeCompare(String(b.name || ''), 'th')
+
+  for (const category of categories) {
+    const parentId = category.parent_id ? String(category.parent_id) : ''
+    if (!parentId || !categoryIds.has(parentId)) {
+      roots.push(category)
+      continue
+    }
+
+    const children = childrenByParent.get(parentId) || []
+    children.push(category)
+    childrenByParent.set(parentId, children)
+  }
+
+  function appendCategory(category: any, depth = 0, parentPath = '') {
+    const id = String(category.id)
+    if (visited.has(id)) return
+    visited.add(id)
+
+    const name = String(category.name || id)
+    const path = parentPath ? `${parentPath} / ${name}` : name
+    options.push({
+      label: depth === 0 ? name : path,
+      value: id,
+      depth,
+      categoryType: depth === 0 ? 'หมวดหลัก' : 'หมวดย่อย',
+      parentPath,
+    })
+
+    const children = (childrenByParent.get(id) || []).sort(sortByName)
+    children.forEach((child: any) => appendCategory(child, depth + 1, path))
+  }
+
+  roots.sort(sortByName).forEach((category: any) => appendCategory(category))
+  categories
+    .filter((category: any) => !visited.has(String(category.id)))
+    .sort(sortByName)
+    .forEach((category: any) => appendCategory(category))
+
+  return options
+})
+const categoryChildrenMap = computed(() => {
+  const map = new Map<string, string[]>()
+  for (const category of props.categories || []) {
+    if (!category.parent_id) continue
+    const parentId = String(category.parent_id)
+    const children = map.get(parentId) || []
+    children.push(String(category.id))
+    map.set(parentId, children)
+  }
+  return map
+})
+
+function getCategoryBranchIds(categoryId: string) {
+  const ids = new Set<string>()
+  const queue = [String(categoryId)]
+
+  while (queue.length) {
+    const currentId = queue.shift()!
+    if (ids.has(currentId)) continue
+    ids.add(currentId)
+    queue.push(...(categoryChildrenMap.value.get(currentId) || []))
+  }
+
+  return ids
+}
 
 // === Form State ===
 const form = reactive({
   id: '', categoryId: '', name: '', description: '',
-  price: 0, stock: 0, is_active: true, unit: '', image: '', badge: '',
+  price: 0, salePrice: '' as number | '', stock: 0, is_active: true, unit: '', image: '', badge: '',
+  additionalCategoryIds: [] as string[], is_featured: false, featured_order: 0,
   tags: [] as string[],
   benefits: [] as { icon: string; title: string; text: string }[],
   rituals: [] as { step: string; title: string; text: string }[],
   gallery: [] as string[]
 })
+
+const additionalCategoryOptions = computed(() =>
+  hierarchicalCategoryOptions.value.filter((option) => option.value !== String(form.categoryId || ''))
+)
 
 // Temp inputs for adding items
 const newTag = ref('')
@@ -158,15 +243,47 @@ function removePendingGalleryImage(index: number) {
 const displayMainImage = computed(() => pendingMainImagePreview.value || form.image)
 
 const filteredData = computed(() => {
+  const keyword = searchQuery.value.trim().toLocaleLowerCase('th')
+  const selectedCategoryIds = selectedCategory.value === 'all'
+    ? null
+    : getCategoryBranchIds(selectedCategory.value)
+
   return (props.data || []).filter((product: any) => {
-    const matchesCategory = selectedCategory.value === 'all' || product.category_id === selectedCategory.value
+    const searchableText = [
+      product.id,
+      product.name,
+      product.category_name,
+      ...productCategoryIds(product).map(getCategoryName),
+      product.badge,
+      product.unit,
+      ...(Array.isArray(product.tags) ? product.tags : []),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase('th')
+    const matchesSearch = !keyword || searchableText.includes(keyword)
+    const matchesCategory = !selectedCategoryIds || productCategoryIds(product).some(id => selectedCategoryIds.has(id))
     const active = Number(product.is_active ?? 1) === 1
     const matchesStatus =
       selectedStatus.value === 'all' ||
       (selectedStatus.value === 'active' && active) ||
       (selectedStatus.value === 'inactive' && !active)
-    return matchesCategory && matchesStatus
+    return matchesSearch && matchesCategory && matchesStatus
   })
+})
+
+const selectedProductIdSet = computed(() => new Set(selectedProductIds.value))
+const visibleProductIds = computed(() => filteredData.value.map((product: any) => String(product.id)))
+const visibleSelectedCount = computed(() => visibleProductIds.value.filter(id => selectedProductIdSet.value.has(id)).length)
+const allVisibleSelected = computed(() => visibleProductIds.value.length > 0 && visibleSelectedCount.value === visibleProductIds.value.length)
+const visibleSelectionState = computed<boolean | 'indeterminate'>(() => {
+  if (allVisibleSelected.value) return true
+  if (visibleSelectedCount.value > 0) return 'indeterminate'
+  return false
+})
+
+watch(() => form.categoryId, (categoryId) => {
+  form.additionalCategoryIds = form.additionalCategoryIds.filter(id => id !== String(categoryId || ''))
 })
 
 const totalProducts = computed(() => (props.data || []).length)
@@ -175,9 +292,11 @@ const inactiveProducts = computed(() => Math.max(0, totalProducts.value - active
 const outOfStockProducts = computed(() => (props.data || []).filter((product: any) => Number(product.stock || 0) <= 0).length)
 
 const columns: TableColumn<any>[] = [
+  { id: 'select', header: '' },
   { accessorKey: 'image', header: 'รูปภาพ' },
   { accessorKey: 'name', header: 'ชื่อสินค้า' },
   { accessorKey: 'category_name', header: 'หมวดหมู่' },
+  { accessorKey: 'is_featured', header: 'แนะนำ' },
   { accessorKey: 'price', header: 'ราคา' },
   { accessorKey: 'stock', header: 'Stock' },
   { accessorKey: 'is_active', header: 'Status' },
@@ -186,10 +305,142 @@ const columns: TableColumn<any>[] = [
   { id: 'actions', header: '' }
 ]
 
+function hasSalePrice(product: any) {
+  const price = Number(product?.price || 0)
+  const salePrice = Number(product?.sale_price || 0)
+  return salePrice > 0 && salePrice < price
+}
+
+function discountPercent(product: any) {
+  if (!hasSalePrice(product)) return 0
+  return Math.round((1 - Number(product.sale_price) / Number(product.price)) * 100)
+}
+
+function productCategoryIds(product: any) {
+  const ids = Array.isArray(product?.category_ids) ? product.category_ids.map(String) : []
+  const primaryId = String(product?.category_id || '')
+  return [...new Set([primaryId, ...ids].filter(Boolean))]
+}
+
+function getCategoryName(categoryId: string) {
+  return props.categories.find((category: any) => String(category.id) === String(categoryId))?.name || categoryId
+}
+
+function getCategoryDisplayName(categoryId: string) {
+  return hierarchicalCategoryOptions.value.find(option => option.value === String(categoryId))?.label || getCategoryName(categoryId)
+}
+
+function removeAdditionalCategory(categoryId: string) {
+  form.additionalCategoryIds = form.additionalCategoryIds.filter(id => id !== categoryId)
+}
+
+function toggleProductSelection(id: string, selected: boolean) {
+  const productId = String(id)
+  const next = new Set(selectedProductIds.value)
+  if (selected) next.add(productId)
+  else next.delete(productId)
+  selectedProductIds.value = [...next]
+}
+
+function toggleVisibleProducts(selected: boolean) {
+  const next = new Set(selectedProductIds.value)
+  for (const id of visibleProductIds.value) {
+    if (selected) next.add(id)
+    else next.delete(id)
+  }
+  selectedProductIds.value = [...next]
+}
+
+async function updateSelectedStatus(isActive: boolean) {
+  if (!selectedProductIds.value.length || isBulkUpdating.value) return
+
+  bulkAction.value = isActive ? 'activate' : 'deactivate'
+  try {
+    await $authFetch('/api/products/bulk-status', {
+      method: 'PUT',
+      body: {
+        ids: selectedProductIds.value,
+        is_active: isActive,
+      },
+    })
+    toast.add({
+      title: isActive ? 'เปิดขายสินค้าที่เลือกแล้ว' : 'ปิดการแสดงสินค้าที่เลือกแล้ว',
+      description: `อัปเดตทั้งหมด ${selectedProductIds.value.length} รายการ`,
+      color: isActive ? 'success' : 'warning',
+      icon: isActive ? 'i-lucide-eye' : 'i-lucide-eye-off',
+    })
+    selectedProductIds.value = []
+    emit('bulkStatusUpdated')
+  } catch (err: any) {
+    toast.add({
+      title: 'อัปเดตสถานะสินค้าไม่สำเร็จ',
+      description: err.data?.statusMessage || err.message,
+      color: 'error',
+      icon: 'i-lucide-alert-circle',
+    })
+  } finally {
+    bulkAction.value = null
+  }
+}
+
+async function deleteSelectedProducts() {
+  if (!selectedProductIds.value.length || isBulkUpdating.value) return
+
+  const total = selectedProductIds.value.length
+  const confirmed = confirm(
+    `ยืนยันการลบสินค้าที่เลือก ${total} รายการ?\n\nสินค้าที่เคยอยู่ในคำสั่งซื้อจะไม่ถูกลบถาวร แต่ระบบจะปิดการขายแทน`
+  )
+  if (!confirmed) return
+
+  bulkAction.value = 'delete'
+  try {
+    const result = await $authFetch<{
+      deleted: number
+      deactivated: number
+      notFound: number
+      failed: number
+      failedFiles: number
+      fileCleanupFailed: boolean
+    }>('/api/products/bulk-delete', {
+      method: 'DELETE',
+      body: { ids: selectedProductIds.value },
+    })
+
+    const details = [
+      result.deleted ? `ลบถาวร ${result.deleted} รายการ` : '',
+      result.deactivated ? `ปิดการขายแทน ${result.deactivated} รายการ` : '',
+      result.notFound ? `ไม่พบ ${result.notFound} รายการ` : '',
+      result.failed ? `ไม่สำเร็จ ${result.failed} รายการ` : '',
+    ].filter(Boolean)
+
+    toast.add({
+      title: result.failed || result.fileCleanupFailed ? 'ลบสินค้าเสร็จแล้ว แต่มีรายการที่ต้องตรวจสอบ' : 'จัดการสินค้าที่เลือกเรียบร้อย',
+      description: [
+        details.join(' · '),
+        result.fileCleanupFailed ? `มีรูปภาพ ${result.failedFiles} ไฟล์ที่ hosting ไม่อนุญาตให้ลบ` : '',
+      ].filter(Boolean).join(' — '),
+      color: result.failed || result.fileCleanupFailed || result.deactivated ? 'warning' : 'success',
+      icon: result.failed || result.fileCleanupFailed ? 'i-lucide-circle-alert' : 'i-lucide-trash-2',
+    })
+    selectedProductIds.value = []
+    emit('bulkDeleted')
+  } catch (err: any) {
+    toast.add({
+      title: 'ลบสินค้าที่เลือกไม่สำเร็จ',
+      description: err.data?.statusMessage || err.message,
+      color: 'error',
+      icon: 'i-lucide-alert-circle',
+    })
+  } finally {
+    bulkAction.value = null
+  }
+}
+
 function resetForm() {
   Object.assign(form, {
     id: '', categoryId: '', name: '', description: '',
-    price: 0, stock: 0, is_active: true, unit: '', image: '', badge: '',
+    price: 0, salePrice: '', stock: 0, is_active: true, unit: '', image: '', badge: '',
+    additionalCategoryIds: [], is_featured: false, featured_order: 0,
     tags: [], benefits: [], rituals: [], gallery: []
   })
   newTag.value = ''
@@ -211,11 +462,15 @@ function openEdit(product: any) {
   Object.assign(form, {
     id: product.id,
     categoryId: product.category_id || '',
+    additionalCategoryIds: productCategoryIds(product).filter(id => id !== String(product.category_id || '')),
     name: product.name,
     description: product.description || '',
-    price: product.price,
+    price: Number(product.price || 0),
+    salePrice: product.sale_price === null || product.sale_price === undefined ? '' : Number(product.sale_price),
     stock: Number(product.stock || 0),
     is_active: Number(product.is_active ?? 1) === 1,
+    is_featured: Number(product.is_featured ?? 0) === 1,
+    featured_order: Number(product.featured_order ?? 0),
     unit: product.unit || '',
     image: product.image || '',
     badge: product.badge || '',
@@ -279,8 +534,17 @@ function removeGalleryImage(index: number) {
 
 // === Save / Delete ===
 async function handleSave() {
-  if (!form.id || !form.name || Number(form.price) <= 0 || Number(form.stock) < 0) {
+  if (!form.id || !form.categoryId || !form.name || Number(form.price) <= 0 || Number(form.stock) < 0) {
     toast.add({ title: 'กรุณากรอกข้อมูลให้ครบ', color: 'error', icon: 'i-lucide-alert-circle' })
+    return
+  }
+  if (form.salePrice !== '' && (Number(form.salePrice) <= 0 || Number(form.salePrice) >= Number(form.price))) {
+    toast.add({
+      title: 'ราคาลดไม่ถูกต้อง',
+      description: 'ราคาลดเหลือต้องมากกว่า 0 และต่ำกว่าราคาปกติ',
+      color: 'error',
+      icon: 'i-lucide-badge-percent',
+    })
     return
   }
   isSaving.value = true
@@ -362,10 +626,28 @@ async function handleDelete(id: string) {
     </div>
 
     <div class="flex flex-col gap-3 rounded-lg border border-default bg-default p-4 lg:flex-row lg:items-center lg:justify-between">
-      <div class="grid flex-1 grid-cols-1 gap-3 md:grid-cols-2">
+      <div class="grid flex-1 grid-cols-1 gap-3 md:grid-cols-3">
+        <UInput
+          v-model="searchQuery"
+          icon="i-lucide-search"
+          placeholder="ค้นหาชื่อสินค้า, Product ID หรือหมวดหมู่"
+          autocomplete="off"
+          class="w-full"
+        >
+          <template v-if="searchQuery" #trailing>
+            <UButton
+              icon="i-lucide-x"
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              aria-label="ล้างคำค้นหา"
+              @click="searchQuery = ''"
+            />
+          </template>
+        </UInput>
         <USelect
           v-model="selectedCategory"
-          :items="[{ label: 'ทุกหมวดหมู่', value: 'all' }, ...(categories || []).map((c: any) => ({ label: c.name, value: c.id }))]"
+          :items="[{ label: 'ทุกหมวดหมู่', value: 'all' }, ...hierarchicalCategoryOptions]"
           icon="i-lucide-folder"
           class="w-full"
         />
@@ -383,8 +665,73 @@ async function handleDelete(id: string) {
       <UButton icon="i-lucide-plus" label="เพิ่มสินค้า" color="primary" @click="openNew" />
     </div>
 
+    <div
+      v-if="selectedProductIds.length"
+      class="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/10 p-4 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div class="flex items-center gap-3">
+        <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+          <UIcon name="i-lucide-list-checks" class="size-5" />
+        </div>
+        <div>
+          <p class="font-semibold text-highlighted">เลือกแล้ว {{ selectedProductIds.length }} รายการ</p>
+          <p class="text-sm text-muted">เปลี่ยนสถานะการแสดงผลของสินค้าที่เลือกพร้อมกัน</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <UButton
+          icon="i-lucide-eye"
+          label="เปิดขาย"
+          color="success"
+          variant="soft"
+          :loading="bulkAction === 'activate'"
+          @click="updateSelectedStatus(true)"
+        />
+        <UButton
+          icon="i-lucide-eye-off"
+          label="ปิดการแสดง"
+          color="warning"
+          variant="soft"
+          :loading="bulkAction === 'deactivate'"
+          @click="updateSelectedStatus(false)"
+        />
+        <UButton
+          icon="i-lucide-trash-2"
+          label="ลบที่เลือก"
+          color="error"
+          variant="soft"
+          :loading="bulkAction === 'delete'"
+          @click="deleteSelectedProducts"
+        />
+        <UButton
+          icon="i-lucide-x"
+          label="ยกเลิกการเลือก"
+          color="neutral"
+          variant="ghost"
+          :disabled="isBulkUpdating"
+          @click="selectedProductIds = []"
+        />
+      </div>
+    </div>
+
     <div class="rounded-lg border border-default bg-default">
       <UTable :data="filteredData" :columns="columns" :loading="loading">
+        <template #select-header>
+          <UCheckbox
+            :model-value="visibleSelectionState"
+            :disabled="!visibleProductIds.length || isBulkUpdating"
+            aria-label="เลือกสินค้าที่แสดงทั้งหมด"
+            @update:model-value="toggleVisibleProducts($event === true)"
+          />
+        </template>
+        <template #select-cell="{ row }">
+          <UCheckbox
+            :model-value="selectedProductIdSet.has(String(row.original.id))"
+            :disabled="isBulkUpdating"
+            :aria-label="`เลือกสินค้า ${row.original.name}`"
+            @update:model-value="toggleProductSelection(row.original.id, $event === true)"
+          />
+        </template>
         <template #image-cell="{ row }">
           <img v-if="row.original.image" :src="row.original.image" class="h-10 w-10 rounded-lg object-cover" />
           <div v-else class="h-10 w-10 rounded-lg bg-elevated flex items-center justify-center">
@@ -392,7 +739,40 @@ async function handleDelete(id: string) {
           </div>
         </template>
         <template #price-cell="{ row }">
-          <span class="font-medium">{{ Number(row.original.price).toLocaleString() }} ฿</span>
+          <div v-if="hasSalePrice(row.original)" class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-error">{{ Number(row.original.sale_price).toLocaleString() }} ฿</span>
+              <UBadge :label="`-${discountPercent(row.original)}%`" color="error" variant="subtle" size="sm" />
+            </div>
+            <span class="text-xs text-muted line-through">{{ Number(row.original.price).toLocaleString() }} ฿</span>
+          </div>
+          <span v-else class="font-medium">{{ Number(row.original.price).toLocaleString() }} ฿</span>
+        </template>
+        <template #category_name-cell="{ row }">
+          <div class="min-w-40 space-y-1.5">
+            <UBadge :label="getCategoryDisplayName(String(row.original.category_id || ''))" color="primary" variant="subtle" size="sm" />
+            <div v-if="productCategoryIds(row.original).filter(id => id !== String(row.original.category_id || '')).length" class="flex flex-wrap gap-1">
+              <UBadge
+                v-for="categoryId in productCategoryIds(row.original).filter(id => id !== String(row.original.category_id || ''))"
+                :key="categoryId"
+                :label="getCategoryDisplayName(categoryId)"
+                color="neutral"
+                variant="subtle"
+                size="sm"
+              />
+            </div>
+          </div>
+        </template>
+        <template #is_featured-cell="{ row }">
+          <UBadge
+            v-if="Number(row.original.is_featured ?? 0) === 1"
+            :label="Number(row.original.featured_order ?? 0) > 0 ? `แนะนำ · ลำดับ ${row.original.featured_order}` : 'แนะนำ · ยังไม่กำหนดลำดับ'"
+            icon="i-lucide-star"
+            color="warning"
+            variant="subtle"
+            size="sm"
+          />
+          <span v-else class="text-sm text-muted">—</span>
         </template>
         <template #stock-cell="{ row }">
           <UBadge :label="String(row.original.stock || 0)" :color="Number(row.original.stock || 0) > 0 ? 'neutral' : 'warning'" variant="subtle" size="sm" />
@@ -416,7 +796,7 @@ async function handleDelete(id: string) {
           <div class="py-10 text-center">
             <UIcon name="i-lucide-package-open" class="mx-auto mb-2 size-8 text-muted" />
             <p class="font-medium">ไม่พบสินค้า</p>
-            <p class="text-sm text-muted">ลองเปลี่ยนหมวดหมู่หรือสถานะสินค้า</p>
+            <p class="text-sm text-muted">ลองเปลี่ยนคำค้นหา หมวดหมู่ หรือสถานะสินค้า</p>
           </div>
         </template>
       </UTable>
@@ -453,20 +833,71 @@ async function handleDelete(id: string) {
                 </template>
                 <UInput v-model="form.id" :disabled="isEditing" placeholder="e.g. chia-seeds" icon="i-lucide-hash" autocomplete="off" class="w-full" />
               </UFormField>
-              <UFormField label="หมวดหมู่" class="w-full">
+              <UFormField label="หมวดหมู่" required class="w-full">
                 <template #label>
                   <AdminFieldLabel
                     label="หมวดหมู่"
-                    tooltip="เลือกหมวดที่ใช้จัดกลุ่มสินค้า ลูกค้าจะใช้ข้อมูลนี้ค้นหาและกรองสินค้า"
+                    tooltip="เลือกหมวดหมู่หลักของสินค้า ใช้กับเลขคำสั่งซื้อและเป็นหมวดอ้างอิงหลักของรายการนี้"
                   />
                 </template>
                 <USelect
                   v-model="form.categoryId"
-                  :items="(categories || []).map((c: any) => ({ label: c.name, value: c.id }))"
+                  :items="hierarchicalCategoryOptions"
                   placeholder="เลือกหมวดหมู่"
                   icon="i-lucide-folder"
                   class="w-full"
                 />
+              </UFormField>
+
+              <UFormField label="หมวดหมู่เพิ่มเติม" hint="เลือกได้หลายหมวด" class="col-span-2 w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="หมวดหมู่เพิ่มเติม"
+                    tooltip="ใช้เมื่อสินค้าหนึ่งรายการควรปรากฏในหลายหมวด หมวดหลักไม่ต้องเลือกซ้ำในช่องนี้"
+                  />
+                </template>
+                <USelectMenu
+                  v-model="form.additionalCategoryIds"
+                  :items="additionalCategoryOptions"
+                  value-key="value"
+                  multiple
+                  placeholder="ค้นหาและเลือกหมวดหมู่เพิ่มเติม"
+                  icon="i-lucide-tags"
+                  class="w-full"
+                >
+                  <template #item-label="{ item }">
+                    <span class="flex min-w-0 items-center gap-2">
+                      <UBadge
+                        :label="item.categoryType"
+                        :color="item.depth === 0 ? 'primary' : 'neutral'"
+                        variant="subtle"
+                        size="xs"
+                        class="shrink-0"
+                      />
+                      <span class="truncate" :class="item.depth > 0 ? 'text-muted' : 'font-semibold text-default'">
+                        {{ item.label }}
+                      </span>
+                    </span>
+                  </template>
+                </USelectMenu>
+                <div v-if="form.additionalCategoryIds.length" class="mt-2 flex flex-wrap gap-1.5">
+                  <span
+                    v-for="categoryId in form.additionalCategoryIds"
+                    :key="categoryId"
+                    class="inline-flex items-center gap-1 rounded-md border border-muted bg-elevated px-2.5 py-1 text-xs font-medium text-default"
+                  >
+                    {{ getCategoryDisplayName(categoryId) }}
+                    <UButton
+                      icon="i-lucide-x"
+                      color="neutral"
+                      variant="ghost"
+                      size="xs"
+                      aria-label="ลบหมวดหมู่เพิ่มเติม"
+                      class="-mr-1 size-5 p-0"
+                      @click="removeAdditionalCategory(categoryId)"
+                    />
+                  </span>
+                </div>
               </UFormField>
 
               <UFormField label="ชื่อสินค้า" required class="col-span-2 w-full">
@@ -487,6 +918,28 @@ async function handleDelete(id: string) {
                   />
                 </template>
                 <UInput v-model="form.price" type="number" placeholder="0" icon="i-lucide-banknote" autocomplete="off" class="w-full" />
+              </UFormField>
+              <UFormField label="ราคาลดเหลือ" hint="ไม่บังคับ" class="w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="ราคาลดเหลือ"
+                    tooltip="ราคาพิเศษที่ลูกค้าจ่ายจริง ต้องต่ำกว่าราคาปกติ หากไม่ต้องการลดราคาให้เว้นว่าง"
+                  />
+                </template>
+                <UInput
+                  v-model="form.salePrice"
+                  type="number"
+                  min="0"
+                  :max="Math.max(Number(form.price) - 0.01, 0)"
+                  step="0.01"
+                  placeholder="เว้นว่างหากไม่มีส่วนลด"
+                  icon="i-lucide-badge-percent"
+                  autocomplete="off"
+                  class="w-full"
+                />
+                <p v-if="form.salePrice !== '' && Number(form.salePrice) > 0 && Number(form.salePrice) < Number(form.price)" class="mt-1 text-xs font-medium text-success">
+                  ลด {{ Math.round((1 - Number(form.salePrice) / Number(form.price)) * 100) }}% จากราคาปกติ
+                </p>
               </UFormField>
               <UFormField label="Stock" required class="w-full">
                 <template #label>
@@ -514,6 +967,32 @@ async function handleDelete(id: string) {
                   />
                 </template>
                 <USwitch v-model="form.is_active" label="Active" />
+              </UFormField>
+
+              <UFormField label="สินค้าแนะนำ" class="w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="สินค้าแนะนำ"
+                    tooltip="เปิดเพื่อให้สินค้านี้ปรากฏในตัวกรองสินค้าแนะนำ โดยไม่กระทบหมวดหมู่หลัก"
+                  />
+                </template>
+                <USwitch v-model="form.is_featured" label="แสดงเป็นสินค้าแนะนำ" />
+              </UFormField>
+
+              <UFormField label="ลำดับสินค้าแนะนำ" hint="เลขน้อยแสดงก่อน" class="w-full">
+                <template #label>
+                  <AdminFieldLabel
+                    label="ลำดับสินค้าแนะนำ"
+                    tooltip="กำหนดลำดับบนหน้าแรก เลข 1 แสดงก่อนเลข 2 หากใส่ 0 ระบบจะนำไปต่อท้ายรายการที่กำหนดลำดับแล้ว"
+                  />
+                </template>
+                <UInputNumber
+                  v-model="form.featured_order"
+                  :min="0"
+                  :step="1"
+                  :disabled="!form.is_featured"
+                  class="w-full"
+                />
               </UFormField>
 
               <UFormField label="Badge" class="col-span-2 w-full" hint="ไม่บังคับ">

@@ -1,4 +1,4 @@
-type SwizerLanguage = 'th' | 'en'
+type SwizerLanguage = 'th' | 'en' | 'zh'
 
 type TranslateJs = {
   execute?: () => void
@@ -31,8 +31,11 @@ type TranslateWindow = Window & {
 const SCRIPT_ID = 'swizer-translate-js-script'
 const SCRIPT_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/translate.js/3.18.58/translate.js'
 const STORAGE_KEY = 'swizer-language'
-const LOCAL_LANGUAGE = 'thai'
-const TARGET_LANGUAGE = 'english'
+const LANGUAGE_CONFIG: Record<SwizerLanguage, { translateJsLanguage: string; htmlLang: string; translated: boolean }> = {
+  th: { translateJsLanguage: 'thai', htmlLang: 'th', translated: false },
+  en: { translateJsLanguage: 'english', htmlLang: 'en', translated: true },
+  zh: { translateJsLanguage: 'chinese_simplified', htmlLang: 'zh-CN', translated: true },
+}
 
 function loadTranslateJs() {
   const translateWindow = window as TranslateWindow
@@ -87,7 +90,7 @@ function configureTranslate(translate: TranslateJs) {
   translate.ignore.class = Array.from(new Set([...(translate.ignore.class || []), 'notranslate']))
   translate.ignore.id = Array.from(new Set([...(translate.ignore.id || []), '__nuxt-devtools-container']))
 
-  translate.language?.setLocal?.(LOCAL_LANGUAGE)
+  translate.language?.setLocal?.(LANGUAGE_CONFIG.th.translateJsLanguage)
   translate.service?.use?.('client.edge')
   translate.listener?.start?.()
 }
@@ -130,12 +133,13 @@ export default defineNuxtPlugin(() => {
 
     try {
       const translate = await initTranslate()
-      const translateJsLanguage = nextLanguage === 'en' ? TARGET_LANGUAGE : LOCAL_LANGUAGE
+      const config = LANGUAGE_CONFIG[nextLanguage]
+      const translateJsLanguage = config.translateJsLanguage
 
       localStorage.setItem(STORAGE_KEY, nextLanguage)
       language.value = nextLanguage
-      document.documentElement.lang = nextLanguage
-      document.body.classList.toggle('swizer-is-translated', nextLanguage === 'en')
+      document.documentElement.lang = config.htmlLang
+      document.body.classList.toggle('swizer-is-translated', config.translated)
 
       translate.changeLanguage?.(translateJsLanguage)
       translate.execute?.()
@@ -153,14 +157,15 @@ export default defineNuxtPlugin(() => {
   }
 
   async function toggleLanguage() {
-    await setLanguage(language.value === 'en' ? 'th' : 'en')
+    const nextLanguage = language.value === 'th' ? 'en' : language.value === 'en' ? 'zh' : 'th'
+    await setLanguage(nextLanguage)
   }
 
   onNuxtReady(() => {
     const savedLanguage = localStorage.getItem(STORAGE_KEY)
 
-    if (savedLanguage === 'en') {
-      window.setTimeout(() => setLanguage('en'), 700)
+    if (savedLanguage === 'en' || savedLanguage === 'zh') {
+      window.setTimeout(() => setLanguage(savedLanguage), 700)
     } else {
       syncDebugState()
     }
@@ -169,9 +174,9 @@ export default defineNuxtPlugin(() => {
   watch(
     () => route.fullPath,
     () => {
-      if (language.value !== 'en') return
+      if (language.value === 'th') return
 
-      window.setTimeout(() => setLanguage('en'), 800)
+      window.setTimeout(() => setLanguage(language.value), 800)
     },
   )
 

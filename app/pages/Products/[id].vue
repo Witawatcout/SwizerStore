@@ -34,10 +34,16 @@
                 Pantry • Pure Essentials</span>
               <h1 class="text-4xl lg:text-5xl font-extrabold font-headline tracking-tight leading-tight">{{ product.name
                 }}</h1>
-              <p class="text-primary-700 font-headline font-bold text-3xl mt-4 tracking-tighter">฿{{ product.price }}
-                <span class="text-sm font-label text-neutral-500 tracking-normal ml-2">/ {{ product.unit || 'ชิ้น'
-                  }}</span>
-              </p>
+              <div class="mt-4 flex flex-wrap items-end gap-x-3 gap-y-1">
+                <p class="font-headline text-3xl font-bold tracking-tighter" :class="hasSalePrice ? 'text-error' : 'text-primary-700'">
+                  ฿{{ effectivePrice.toLocaleString() }}
+                </p>
+                <p v-if="hasSalePrice" class="pb-1 text-base font-semibold text-neutral-400 line-through">
+                  ฿{{ regularPrice.toLocaleString() }}
+                </p>
+                <UBadge v-if="hasSalePrice" :label="`ลด ${discountPercent}%`" color="error" variant="subtle" class="mb-1" />
+                <span class="mb-1 text-sm font-label text-neutral-500 tracking-normal">/ {{ product.unit || 'ชิ้น' }}</span>
+              </div>
             </div>
 
             <div class="space-y-6 mb-10 text-neutral-600 leading-relaxed">
@@ -186,6 +192,14 @@ const relatedProducts = computed(() => {
   if (!allProducts.value) return []
   return allProducts.value.filter((p: any) => p.id !== productId.value).slice(0, 4)
 })
+const regularPrice = computed(() => Number(product.value?.price || 0))
+const salePrice = computed(() => Number(product.value?.sale_price || 0))
+const hasSalePrice = computed(() => salePrice.value > 0 && salePrice.value < regularPrice.value)
+const effectivePrice = computed(() => hasSalePrice.value ? salePrice.value : regularPrice.value)
+const discountPercent = computed(() => hasSalePrice.value
+  ? Math.round((1 - salePrice.value / regularPrice.value) * 100)
+  : 0
+)
 
 const qty = ref(1)
 const cartBtnRef = ref<HTMLElement | null>(null)  // ✅ ref ปุ่ม
@@ -200,7 +214,7 @@ const addToCart = () => {
   cartStore.addItem({
     id: product.value.id,           // ✅ ส่ง string ตรงๆ ไม่ต้อง Number()
     name: product.value.name,
-    price: product.value.price,     // store แปลงเองอยู่แล้ว
+    price: effectivePrice.value,
     image: product.value.image
   }, qty.value)
 

@@ -6,9 +6,11 @@ const props = defineProps<{
     id: string
     name: string
     description: string
-    price: number
+    price: number | string
+    sale_price?: number | string | null
     image: string
     badge?: string
+    is_featured?: number | boolean
     unit?: string
   }
 }>()
@@ -17,6 +19,14 @@ const cartStore = useCartStore()
 const added = ref(false)  // ✅ เพิ่ม state
 const { fly } = useFlyToCart()
 const btnRef = ref<HTMLElement | null>(null)
+const regularPrice = computed(() => Number(props.product.price || 0))
+const salePrice = computed(() => Number(props.product.sale_price || 0))
+const hasSalePrice = computed(() => salePrice.value > 0 && salePrice.value < regularPrice.value)
+const effectivePrice = computed(() => hasSalePrice.value ? salePrice.value : regularPrice.value)
+const discountPercent = computed(() => hasSalePrice.value
+  ? Math.round((1 - salePrice.value / regularPrice.value) * 100)
+  : 0
+)
 const plainDescription = computed(() =>
   String(props.product.description || '')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
@@ -36,7 +46,7 @@ const addToCart = () => {
   cartStore.addItem({
     id: props.product.id,
     name: props.product.name,
-    price: props.product.price,
+    price: effectivePrice.value,
     image: props.product.image
   })
 
@@ -60,10 +70,21 @@ const addToCart = () => {
         class="w-full h-full object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-110 will-change-transform"
         :src="product.image" loading="lazy" />
 
-      <div v-if="product.badge" class="absolute top-4 left-4 z-10">
+      <div v-if="product.badge || hasSalePrice || product.is_featured" class="absolute top-4 left-4 z-10 flex flex-wrap gap-2">
         <span
+          v-if="product.badge"
           class="px-4 py-1.5 bg-primary-600/10 backdrop-blur-md border border-primary-600/20 text-primary-700 rounded-full text-[10px] font-black tracking-[0.1em] uppercase shadow-sm">
           {{ product.badge }}
+        </span>
+        <span
+          v-if="product.is_featured"
+          class="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-white/90 px-3 py-1.5 text-[10px] font-black text-warning shadow-sm backdrop-blur-md">
+          <UIcon name="i-lucide-star" class="size-3" /> แนะนำ
+        </span>
+        <span
+          v-if="hasSalePrice"
+          class="rounded-full border border-error/25 bg-error/90 px-3 py-1.5 text-[10px] font-black text-white shadow-sm backdrop-blur-md">
+          ลด {{ discountPercent }}%
         </span>
       </div>
 
@@ -96,8 +117,9 @@ const addToCart = () => {
       <div class="pt-6 border-t border-neutral-100/80 flex items-center justify-between">
         <div class="flex flex-col">
           <span class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-0.5">Price</span>
-          <span class="text-2xl font-black text-neutral-900 tracking-tighter">
-            <span class="text-primary-600 text-sm mr-0.5 font-bold italic">฿</span>{{ product.price.toLocaleString() }}
+          <span v-if="hasSalePrice" class="text-xs font-semibold text-neutral-400 line-through">฿{{ regularPrice.toLocaleString() }}</span>
+          <span class="text-2xl font-black tracking-tighter" :class="hasSalePrice ? 'text-error' : 'text-neutral-900'">
+            <span class="text-sm mr-0.5 font-bold italic" :class="hasSalePrice ? 'text-error' : 'text-primary-600'">฿</span>{{ effectivePrice.toLocaleString() }}
           </span>
         </div>
 

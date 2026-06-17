@@ -29,8 +29,13 @@ const mainCategories = computed(() =>
     }))
 );
 
+const featuredProductsCount = computed(() =>
+  productList.value.filter((product: any) => Number(product.is_featured ?? 0) === 1).length
+);
+
 const categoryOptions = computed(() => [
   { label: `ทั้งหมด (${productList.value.length})`, value: "all" },
+  { label: `สินค้าแนะนำ (${featuredProductsCount.value})`, value: "featured" },
   ...mainCategories.value.flatMap((category: any) => [
     { label: `${category.name} (${categoryProductCount(category.id)})`, value: String(category.id) },
     ...category.children.map((child: any) => ({
@@ -49,6 +54,7 @@ const sortItems = [
 
 const selectedCategoryName = computed(() => {
   if (selectedCategory.value === "all") return "สินค้าทั้งหมด";
+  if (selectedCategory.value === "featured") return "สินค้าแนะนำ";
   return categoryList.value.find((category: any) => String(category.id) === selectedCategory.value)?.name || "สินค้า";
 });
 
@@ -65,8 +71,9 @@ const selectedCategoryIds = computed(() => {
 const filteredProducts = computed(() => {
   const keyword = searchText.value.trim().toLowerCase();
   const filtered = productList.value.filter((product: any) => {
-    const matchesCategory =
-      selectedCategory.value === "all" || selectedCategoryIds.value.includes(String(product.category_id));
+    const matchesCategory = selectedCategory.value === "featured"
+      ? Number(product.is_featured ?? 0) === 1
+      : selectedCategory.value === "all" || productCategoryIds(product).some(id => selectedCategoryIds.value.includes(id));
     const matchesSearch =
       !keyword ||
       String(product.name || "").toLowerCase().includes(keyword) ||
@@ -76,8 +83,9 @@ const filteredProducts = computed(() => {
   });
 
   return [...filtered].sort((a: any, b: any) => {
-    if (sortBy.value === "price_asc") return Number(a.price || 0) - Number(b.price || 0);
-    if (sortBy.value === "price_desc") return Number(b.price || 0) - Number(a.price || 0);
+    if (selectedCategory.value === "featured" && sortBy.value === "name") return compareFeaturedProducts(a, b);
+    if (sortBy.value === "price_asc") return effectivePrice(a) - effectivePrice(b);
+    if (sortBy.value === "price_desc") return effectivePrice(b) - effectivePrice(a);
     if (sortBy.value === "newest") return String(b.id).localeCompare(String(a.id));
     return String(a.name || "").localeCompare(String(b.name || ""));
   });
@@ -90,7 +98,24 @@ function categoryProductCount(categoryId: string | number) {
     .map((category: any) => String(category.id));
   const ids = [id, ...childIds];
 
-  return productList.value.filter((product: any) => ids.includes(String(product.category_id))).length;
+  return productList.value.filter((product: any) => productCategoryIds(product).some(productCategoryId => ids.includes(productCategoryId))).length;
+}
+
+function productCategoryIds(product: any) {
+  const ids = Array.isArray(product?.category_ids) ? product.category_ids.map(String) : [];
+  return [...new Set([String(product?.category_id || ""), ...ids].filter(Boolean))];
+}
+
+function effectivePrice(product: any) {
+  const price = Number(product?.price || 0);
+  const salePrice = Number(product?.sale_price || 0);
+  return salePrice > 0 && salePrice < price ? salePrice : price;
+}
+
+function compareFeaturedProducts(a: any, b: any) {
+  const aOrder = Number(a.featured_order || 0) || Number.MAX_SAFE_INTEGER;
+  const bOrder = Number(b.featured_order || 0) || Number.MAX_SAFE_INTEGER;
+  return aOrder - bOrder || String(a.name || "").localeCompare(String(b.name || ""), "th");
 }
 
 function selectCategory(categoryId: string | number) {
@@ -195,6 +220,18 @@ watch(
                   :class="selectedCategory === 'all' ? 'bg-white/20 text-white' : 'bg-primary-100 text-primary-800'"
                 >
                   {{ productList.length }}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                class="mb-3 flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-bold transition-colors"
+                :class="selectedCategory === 'featured' ? 'bg-warning text-white shadow-sm' : 'bg-warning/10 text-warning hover:bg-warning/20'"
+                @click="selectedCategory = 'featured'"
+              >
+                <span class="flex items-center gap-2"><UIcon name="i-lucide-star" class="size-4" />สินค้าแนะนำ</span>
+                <span class="rounded-full px-2 py-0.5 text-xs" :class="selectedCategory === 'featured' ? 'bg-white/20 text-white' : 'bg-warning/15 text-warning'">
+                  {{ featuredProductsCount }}
                 </span>
               </button>
 

@@ -15,9 +15,11 @@ const toast = useToast()
 const isModalOpen = ref(false)
 const isEditing = ref(false)
 const isSaving = ref(false)
+const defaultCategoryColor = '#65A30D'
+const categoryColorOptions = ['#65A30D', '#16A34A', '#0F766E', '#2563EB', '#7C3AED', '#DB2777', '#EA580C', '#CA8A04']
 
 const form = reactive({
-  id: '', name: '', slug: '', parentId: null as string | null, is_active: true
+  id: '', name: '', slug: '', parentId: null as string | null, is_active: true, color: defaultCategoryColor
 })
 
 const totalCategories = computed(() => (props.data || []).length)
@@ -25,28 +27,67 @@ const activeCategories = computed(() => (props.data || []).filter((category: any
 const inactiveCategories = computed(() => Math.max(0, totalCategories.value - activeCategories.value))
 const mainCategories = computed(() => (props.data || []).filter((category: any) => !category.parent_id).length)
 const childCategories = computed(() => Math.max(0, totalCategories.value - mainCategories.value))
+const hierarchicalCategories = computed(() => {
+  const categories = props.data || []
+  const categoryIds = new Set(categories.map((category: any) => String(category.id)))
+  const childrenByParent = new Map<string, any[]>()
+  const roots: any[] = []
+  const result: any[] = []
+  const visited = new Set<string>()
+  const sortByName = (a: any, b: any) => String(a.name || '').localeCompare(String(b.name || ''), 'th')
+
+  for (const category of categories) {
+    const parentId = category.parent_id ? String(category.parent_id) : ''
+    if (!parentId || !categoryIds.has(parentId)) {
+      roots.push(category)
+      continue
+    }
+
+    const children = childrenByParent.get(parentId) || []
+    children.push(category)
+    childrenByParent.set(parentId, children)
+  }
+
+  function appendCategory(category: any, depth = 0) {
+    const id = String(category.id)
+    if (visited.has(id)) return
+    visited.add(id)
+
+    const children = (childrenByParent.get(id) || []).sort(sortByName)
+    result.push({ ...category, _depth: depth, _childCount: children.length })
+    children.forEach((child: any) => appendCategory(child, depth + 1))
+  }
+
+  roots.sort(sortByName).forEach((category: any) => appendCategory(category))
+  categories
+    .filter((category: any) => !visited.has(String(category.id)))
+    .sort(sortByName)
+    .forEach((category: any) => appendCategory(category))
+
+  return result
+})
 const visibleParentOptions = computed(() =>
   (props.data || [])
     .filter((category: any) => category.id !== form.id)
     .map((category: any) => ({
-      label: category.name,
+      label: category.parent_id ? `${getParentName(category.parent_id)} / ${category.name}` : category.name,
       value: category.id,
       disabled: Number(category.is_active ?? 1) !== 1
     }))
 )
 
 const columns: TableColumn<any>[] = [
-  { accessorKey: 'id', header: 'ID' },
-  { accessorKey: 'name', header: 'ชื่อหมวดหมู่' },
-  { accessorKey: 'slug', header: 'Slug' },
-  { accessorKey: 'parent_id', header: 'หมวดหมู่หลัก' },
+  { accessorKey: 'name', header: 'หมวดหมู่' },
+  { accessorKey: 'parent_id', header: 'อยู่ภายใต้' },
+  { accessorKey: 'color', header: 'สีประจำหมวด' },
+  { accessorKey: 'slug', header: 'URL Slug' },
   { accessorKey: 'is_active', header: 'สถานะ' },
   { id: 'actions', header: '' }
 ]
 
 function openNew() {
   isEditing.value = false
-  Object.assign(form, { id: '', name: '', slug: '', parentId: null, is_active: true })
+  Object.assign(form, { id: '', name: '', slug: '', parentId: null, is_active: true, color: defaultCategoryColor })
   isModalOpen.value = true
 }
 
@@ -57,7 +98,8 @@ function openEdit(category: any) {
     name: category.name,
     slug: category.slug,
     parentId: category.parent_id || null,
-    is_active: Number(category.is_active ?? 1) === 1
+    is_active: Number(category.is_active ?? 1) === 1,
+    color: getCategoryColor(category.color)
   })
   isModalOpen.value = true
 }
@@ -67,6 +109,11 @@ async function handleSave() {
     toast.add({ title: 'กรุณากรอกข้อมูลให้ครบ', color: 'error', icon: 'i-lucide-alert-circle' })
     return
   }
+  if (!/^#[0-9A-Fa-f]{6}$/.test(form.color)) {
+    toast.add({ title: 'รูปแบบสีไม่ถูกต้อง', description: 'กรุณาระบุสีเป็นรหัส HEX เช่น #65A30D', color: 'error', icon: 'i-lucide-palette' })
+    return
+  }
+  form.color = form.color.toUpperCase()
   isSaving.value = true
   try {
     const method = isEditing.value ? 'PUT' : 'POST'
@@ -110,6 +157,11 @@ function getParentName(parentId: string | null) {
   const parent = props.data?.find((c: any) => c.id === parentId)
   return parent?.name || parentId
 }
+
+function getCategoryColor(value: unknown) {
+  const color = String(value || '').trim().toUpperCase()
+  return /^#[0-9A-F]{6}$/.test(color) ? color : defaultCategoryColor
+}
 </script>
 
 <template>
@@ -142,10 +194,65 @@ function getParentName(parentId: string | null) {
     </div>
 
     <div class="rounded-lg border border-default bg-default">
-      <UTable :data="data" :columns="columns" :loading="loading">
+      <UTable :data="hierarchicalCategories" :columns="columns" :loading="loading">
+        <template #name-cell="{ row }">
+          <div
+            class="relative flex min-w-64 items-center gap-3 py-1"
+            :style="{ paddingLeft: `${Math.min(Number(row.original._depth || 0), 4) * 28}px` }"
+          >
+            <span
+              v-if="Number(row.original._depth || 0) > 0"
+              class="absolute top-1/2 h-px w-5 bg-accented"
+              :style="{ left: `${Math.min(Number(row.original._depth || 0), 4) * 28 - 24}px` }"
+              aria-hidden="true"
+            />
+            <div
+              class="flex size-9 shrink-0 items-center justify-center rounded-lg border shadow-sm"
+              :style="{
+                color: getCategoryColor(row.original.color),
+                backgroundColor: `${getCategoryColor(row.original.color)}18`,
+                borderColor: `${getCategoryColor(row.original.color)}45`,
+              }"
+            >
+              <UIcon :name="row.original.parent_id ? 'i-lucide-corner-down-right' : 'i-lucide-folder-tree'" class="size-4" />
+            </div>
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <p class="font-semibold text-highlighted">{{ row.original.name }}</p>
+                <UBadge
+                  :label="row.original.parent_id ? 'หมวดย่อย' : 'หมวดหลัก'"
+                  :color="row.original.parent_id ? 'neutral' : 'primary'"
+                  variant="subtle"
+                  size="sm"
+                />
+                <UBadge
+                  v-if="!row.original.parent_id && Number(row.original._childCount || 0) > 0"
+                  :label="`${row.original._childCount} หมวดย่อย`"
+                  color="info"
+                  variant="subtle"
+                  size="sm"
+                />
+              </div>
+              <p class="mt-0.5 font-mono text-xs text-muted">ID: {{ row.original.id }}</p>
+            </div>
+          </div>
+        </template>
+        <template #color-cell="{ row }">
+          <div class="flex items-center gap-2">
+            <span
+              class="size-5 shrink-0 rounded-md border border-default shadow-sm"
+              :style="{ backgroundColor: getCategoryColor(row.original.color) }"
+              aria-hidden="true"
+            />
+            <span class="font-mono text-xs font-semibold text-muted">{{ getCategoryColor(row.original.color) }}</span>
+          </div>
+        </template>
         <template #parent_id-cell="{ row }">
-          <UBadge v-if="row.original.parent_id" :label="getParentName(row.original.parent_id)" variant="subtle" color="neutral" size="sm" />
-          <UBadge v-else label="หมวดหมู่หลัก" variant="subtle" color="primary" size="sm" />
+          <div v-if="row.original.parent_id" class="flex items-center gap-2 text-sm text-toned">
+            <UIcon name="i-lucide-corner-down-right" class="size-4 text-muted" />
+            <span class="font-medium">{{ getParentName(row.original.parent_id) }}</span>
+          </div>
+          <span v-else class="text-sm text-muted">ระดับบนสุด</span>
         </template>
         <template #is_active-cell="{ row }">
           <UBadge
@@ -240,6 +347,45 @@ function getParentName(parentId: string | null) {
                 autocomplete="off"
                 class="w-full"
               />
+            </UFormField>
+
+            <UFormField label="สีประจำหมวดหมู่" required class="w-full">
+              <template #label>
+                <AdminFieldLabel
+                  label="สีประจำหมวดหมู่"
+                  tooltip="สีนี้ใช้แยกหมวดหมู่บนหน้าแรก ควรเลือกสีที่อ่านง่ายและแตกต่างจากหมวดอื่น"
+                />
+              </template>
+              <div class="space-y-3 rounded-xl border border-default bg-elevated/40 p-4">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <label class="relative flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-default bg-default shadow-sm" title="เลือกสี">
+                    <input v-model="form.color" type="color" class="absolute inset-0 size-full cursor-pointer opacity-0" />
+                    <span class="size-8 rounded-lg border border-white/60 shadow-inner" :style="{ backgroundColor: getCategoryColor(form.color) }" />
+                  </label>
+                  <UInput
+                    v-model="form.color"
+                    placeholder="#65A30D"
+                    icon="i-lucide-palette"
+                    maxlength="7"
+                    class="w-full"
+                    @blur="form.color = getCategoryColor(form.color)"
+                  />
+                </div>
+                <div class="flex flex-wrap gap-2" aria-label="สีแนะนำ">
+                  <button
+                    v-for="color in categoryColorOptions"
+                    :key="color"
+                    type="button"
+                    class="size-8 rounded-full border-2 transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    :class="form.color.toUpperCase() === color ? 'border-default ring-2 ring-primary/30 ring-offset-2' : 'border-white shadow-sm'"
+                    :style="{ backgroundColor: color }"
+                    :title="color"
+                    :aria-label="`เลือกสี ${color}`"
+                    @click="form.color = color"
+                  />
+                </div>
+                <p class="text-xs text-muted">สีนี้จะแสดงกับหมวดหมู่หลักในส่วนสินค้าแนะนำบนหน้าแรก</p>
+              </div>
             </UFormField>
           </div>
 

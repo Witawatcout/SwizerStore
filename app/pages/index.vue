@@ -106,39 +106,65 @@
           </div>
         </div>
 
-        <div v-else-if="homeCategorySections.length" class="space-y-20">
-          <section
-            v-for="(section, sectionIndex) in homeCategorySections"
-            :key="section.category.id"
-            class="space-y-8 fade-in-up"
-            :style="{ animationDelay: `${sectionIndex * 80}ms`, animationDuration: '0.8s' }"
-          >
+        <div v-else-if="featuredProducts.length || homeCategorySections.length" class="space-y-12">
+          <section v-if="featuredProducts.length"
+            class="-mx-4 space-y-8 border-y border-warning/30 bg-warning/10 px-4 py-12 fade-in-up md:-mx-8 md:px-8 md:py-14">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <span class="mb-2 block text-xs font-black uppercase tracking-[0.22em] text-primary-700">
-                  {{ section.total }} products
-                </span>
-                <h3 class="font-headline text-3xl md:text-4xl font-black text-neutral-950 tracking-tight">
-                  {{ section.category.name }}
-                </h3>
+              <div class="flex items-stretch gap-4">
+                <span class="w-1.5 shrink-0 rounded-full bg-warning" aria-hidden="true" />
+                <div>
+                  <span
+                    class="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-warning">
+                    <UIcon name="i-lucide-star" class="size-4" /> Selected by Swizer
+                  </span>
+                  <h3 class="font-headline text-3xl font-black tracking-tight text-neutral-950 md:text-4xl">สินค้าแนะนำ
+                  </h3>
+                </div>
               </div>
-              <NuxtLink
-                :to="{ path: '/products', query: { category: String(section.category.id) } }"
-                class="inline-flex items-center gap-2 self-start rounded-full border border-primary-200 bg-white px-5 py-3 text-sm font-black text-neutral-800 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary-400 hover:bg-primary-50 hover:text-primary-800 sm:self-auto"
-              >
+              <NuxtLink :to="{ path: '/products', query: { category: 'featured' } }"
+                class="inline-flex items-center gap-2 self-start rounded-full border border-warning/30 bg-white px-5 py-3 text-sm font-black text-warning shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-warning hover:text-white sm:self-auto">
+                ดูสินค้าแนะนำ
+                <Icon name="mynaui:arrow-long-right-solid" />
+              </NuxtLink>
+            </div>
+            <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3 md:gap-12">
+              <ProductCard v-for="(product, idx) in featuredProducts" :key="`featured-${product.id}`" :product="product"
+                class="fade-in-up" :style="{ animationDelay: `${100 + idx * 80}ms`, animationDuration: '0.8s' }" />
+            </div>
+          </section>
+
+          <section v-for="(section, sectionIndex) in homeCategorySections" :key="section.category.id"
+            class="category-section -mx-4 space-y-8 border-y px-4 py-12 fade-in-up md:-mx-8 md:px-8 md:py-14" :style="{
+              animationDelay: `${sectionIndex * 80}ms`,
+              animationDuration: '0.8s',
+              '--category-color': getCategoryColor(section.category.color),
+              '--category-soft': categoryColorWithAlpha(section.category.color, 0.1),
+              '--category-border': categoryColorWithAlpha(section.category.color, 0.3),
+              '--category-background': categoryColorWithAlpha(section.category.color, 0.1),
+            }">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div class="flex items-stretch gap-4">
+                <span class="w-1.5 shrink-0 rounded-full bg-[var(--category-color)]" aria-hidden="true" />
+                <div>
+                  <span class="mb-2 block text-xs font-black uppercase tracking-[0.22em] text-[var(--category-color)]">
+                    {{ section.total }} products
+                  </span>
+                  <h3 class="font-headline text-3xl md:text-4xl font-black text-neutral-950 tracking-tight">
+                    {{ section.category.name }}
+                  </h3>
+                </div>
+              </div>
+              <NuxtLink :to="{ path: '/products', query: { category: String(section.category.id) } }"
+                class="category-link inline-flex items-center gap-2 self-start rounded-full border px-5 py-3 text-sm font-black shadow-sm transition-all duration-300 hover:-translate-y-0.5 sm:self-auto">
                 ดูหมวดนี้
                 <Icon name="mynaui:arrow-long-right-solid" />
               </NuxtLink>
             </div>
 
             <div v-if="section.products.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-12">
-              <ProductCard
-                v-for="(product, idx) in section.products"
-                :key="`${section.category.id}-${product.id}`"
-                :product="product"
-                class="fade-in-up"
-                :style="{ animationDelay: `${100 + idx * 80}ms`, animationDuration: '0.8s' }"
-              />
+              <ProductCard v-for="(product, idx) in section.products" :key="`${section.category.id}-${product.id}`"
+                :product="product" class="fade-in-up"
+                :style="{ animationDelay: `${100 + idx * 80}ms`, animationDuration: '0.8s' }" />
             </div>
 
             <div v-else class="rounded-[2rem] border border-primary-100 bg-white p-8 text-neutral-500">
@@ -320,15 +346,25 @@ const { data: homeCategoriesData, status: homeCategoriesStatus } = useLazyFetch<
 
 const homeProducts = computed(() => homeProductsData.value || [])
 const homeCategories = computed(() => homeCategoriesData.value || [])
+const featuredProducts = computed(() =>
+  homeProducts.value
+    .filter((product: any) => Number(product.is_featured ?? 0) === 1)
+    .sort(compareFeaturedProducts)
+    .slice(0, 3)
+)
 const homeCategorySections = computed(() =>
   homeCategories.value
+    .filter((category: any) => !category.parent_id)
     .map((category: any) => {
       const id = String(category.id)
       const childIds = homeCategories.value
         .filter((child: any) => String(child.parent_id) === id)
         .map((child: any) => String(child.id))
       const ids = [id, ...childIds]
-      const products = homeProducts.value.filter((product: any) => ids.includes(String(product.category_id)))
+      const products = homeProducts.value.filter((product: any) =>
+        Number(product.is_featured ?? 0) !== 1 &&
+        productCategoryIds(product).some(categoryId => ids.includes(categoryId))
+      )
 
       return {
         category,
@@ -336,8 +372,31 @@ const homeCategorySections = computed(() =>
         total: products.length,
       }
     })
-    .filter((section: any) => section.total > 0)
 )
+
+function getCategoryColor(value: unknown) {
+  const color = String(value || '').trim().toUpperCase()
+  return /^#[0-9A-F]{6}$/.test(color) ? color : '#65A30D'
+}
+
+function productCategoryIds(product: any) {
+  const ids = Array.isArray(product?.category_ids) ? product.category_ids.map(String) : []
+  return [...new Set([String(product?.category_id || ''), ...ids].filter(Boolean))]
+}
+
+function compareFeaturedProducts(a: any, b: any) {
+  const aOrder = Number(a.featured_order || 0) || Number.MAX_SAFE_INTEGER
+  const bOrder = Number(b.featured_order || 0) || Number.MAX_SAFE_INTEGER
+  return aOrder - bOrder || String(a.name || '').localeCompare(String(b.name || ''), 'th')
+}
+
+function categoryColorWithAlpha(value: unknown, alpha: number) {
+  const color = getCategoryColor(value)
+  const red = Number.parseInt(color.slice(1, 3), 16)
+  const green = Number.parseInt(color.slice(3, 5), 16)
+  const blue = Number.parseInt(color.slice(5, 7), 16)
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`
+}
 const isProductsSectionLoading = computed(() =>
   isHomeLoading.value ||
   homeProductsStatus.value === 'pending' ||
@@ -417,5 +476,22 @@ onUnmounted(() => {
   will-change: transform, opacity;
   backface-visibility: hidden;
   transform-style: preserve-3d;
+}
+
+.category-link {
+  color: var(--category-color);
+  background-color: var(--category-soft);
+  border-color: var(--category-border);
+}
+
+.category-section {
+  background-color: var(--category-background);
+  border-color: var(--category-border);
+}
+
+.category-link:hover {
+  background-color: var(--category-color);
+  border-color: var(--category-color);
+  color: white;
 }
 </style>

@@ -30,6 +30,8 @@ const loading = computed(() => productsStatus.value === 'pending' || productsSta
           :loading="loading"
           @save="refreshProducts()"
           @delete="refreshProducts()"
+          @bulk-status-updated="refreshProducts()"
+          @bulk-deleted="refreshProducts()"
         />
       </div>
     </template>

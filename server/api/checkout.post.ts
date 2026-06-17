@@ -1,5 +1,6 @@
 import { getOptionalAuth } from "~~/server/utils/auth";
 import { getPool } from "~~/server/utils/db";
+import { ensureProductPricingSchema, effectiveProductPrice } from "~~/server/utils/products";
 import { createCardCharge, createPromptPaySource, createSourceCharge, isChargeSuccessful, toSatang } from "~~/server/utils/omise";
 import { expirePromptPayReservations, generateOrderId, markOrderPaymentFailed, markOrderPaymentSuccess } from "~~/server/utils/orders";
 import { checkRateLimit, getRateLimitInfo } from "~~/server/utils/rateLimit";
@@ -84,6 +85,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Cart is empty" });
   }
 
+  await ensureProductPricingSchema();
   const pool = getPool();
   const conn = await pool.getConnection();
   let orderId = "";
@@ -96,7 +98,7 @@ export default defineEventHandler(async (event) => {
 
     const placeholders = items.map(() => "?").join(",");
     const [products] = await conn.execute<any[]>(
-      `SELECT id, category_id, name, price, stock, is_active
+      `SELECT id, category_id, name, price, sale_price, stock, is_active
        FROM products
        WHERE id IN (${placeholders}) FOR UPDATE`,
       items.map((item) => item.id)
@@ -129,7 +131,7 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 400, statusMessage: `${product.name} has only ${Math.max(availableStock, 0)} item(s) available` });
       }
 
-      const unitPrice = Number(product.price);
+      const unitPrice = effectiveProductPrice(product.price, product.sale_price);
       return {
         product_id: item.id,
         category_id: String(product.category_id || "").trim(),
