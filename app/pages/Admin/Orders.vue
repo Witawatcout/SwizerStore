@@ -16,10 +16,22 @@ const searchQuery = ref("");
 const selectedOrder = ref<any>(null);
 const isDetailOpen = ref(false);
 const isSendingEmail = ref(false);
+const isRefunding = ref(false);
 const trackingNumberForm = ref("");
 const page = ref(1);
 const pageSize = ref(10);
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
+
+const refundForm = reactive({
+  amount: 0,
+  reason: "customer_request",
+  note: "",
+  transaction_reference: "",
+  bank_name: "",
+  bank_account_name: "",
+  bank_account_number: "",
+  send_email: true,
+});
 
 const statusItems = [
   { label: "ทุกสถานะ", value: "all" },
@@ -54,6 +66,14 @@ const pageSizeItems = [
   { label: "50 รายการ/หน้า", value: 50 },
 ];
 
+const refundReasonItems = [
+  { label: "ลูกค้าขอยกเลิก/คืนเงิน", value: "customer_request" },
+  { label: "สินค้าไม่พร้อมจัดส่ง", value: "out_of_stock" },
+  { label: "คำสั่งซื้อซ้ำ", value: "duplicate_order" },
+  { label: "ปรับยอด/คืนบางส่วน", value: "partial_adjustment" },
+  { label: "อื่นๆ", value: "other" },
+];
+
 const queryParams = computed(() => {
   const params = new URLSearchParams();
   if (selectedStatus.value !== "all") params.set("status", selectedStatus.value);
@@ -80,6 +100,7 @@ const columns: TableColumn<any>[] = [
   { accessorKey: "customer_name", header: "ลูกค้า" },
   { accessorKey: "payment_method", header: "ช่องทางชำระเงิน" },
   { accessorKey: "payment_status", header: "สถานะชำระเงิน" },
+  { accessorKey: "refund_status", header: "คืนเงิน" },
   { accessorKey: "status", header: "สถานะคำสั่งซื้อ" },
   { accessorKey: "tracking_number", header: "เลขพัสดุ" },
   { accessorKey: "total", header: "ยอดรวม" },
@@ -137,8 +158,45 @@ function paymentStatusColor(value: string) {
   return "warning";
 }
 
+function refundStatusLabel(value: string) {
+  if (value === "full") return "คืนครบแล้ว";
+  if (value === "partial") return "คืนบางส่วน";
+  return "ยังไม่คืน";
+}
+
+function refundStatusColor(value: string) {
+  if (value === "full") return "success";
+  if (value === "partial") return "warning";
+  return "neutral";
+}
+
+function refundMethodLabel(value: string) {
+  if (value === "omise") return "Omise";
+  if (value === "manual") return "Manual";
+  return value || "-";
+}
+
 const formatPrice = (price: number) =>
   new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB" }).format(Number(price || 0));
+
+const selectedRefundedAmount = computed(() => Number(selectedOrder.value?.refunded_amount || 0));
+const selectedRefundRemaining = computed(() =>
+  Math.max(0, Math.round((Number(selectedOrder.value?.total || 0) - selectedRefundedAmount.value) * 100) / 100)
+);
+const canRefundSelectedOrder = computed(() =>
+  selectedOrder.value?.payment_status === "success" &&
+  selectedRefundRemaining.value > 0 &&
+  ["credit_card", "promptpay"].includes(selectedOrder.value?.payment_method)
+);
+const refundNotice = computed(() => {
+  if (selectedOrder.value?.payment_method === "credit_card") {
+    return "บัตรเครดิต/เดบิต: ระบบจะส่งคำขอคืนเงินผ่าน Omise กลับไปยังช่องทางเดิม";
+  }
+  if (selectedOrder.value?.payment_method === "promptpay") {
+    return "PromptPay: Omise ไม่คืนเงินผ่าน API ให้โดยตรง ให้ admin โอนคืนเอง แล้วบันทึกเลขอ้างอิงไว้ในระบบ";
+  }
+  return "ช่องทางนี้ยังไม่รองรับการคืนเงินจากหน้านี้";
+});
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString("th-TH");
@@ -159,7 +217,19 @@ function pageNumbers() {
 async function openDetail(id: string) {
   selectedOrder.value = await $authFetch(`/api/admin/orders/${id}`);
   trackingNumberForm.value = selectedOrder.value?.tracking_number || "";
+  resetRefundForm();
   isDetailOpen.value = true;
+}
+
+function resetRefundForm() {
+  refundForm.amount = selectedRefundRemaining.value;
+  refundForm.reason = "customer_request";
+  refundForm.note = "";
+  refundForm.transaction_reference = "";
+  refundForm.bank_name = "";
+  refundForm.bank_account_name = "";
+  refundForm.bank_account_number = "";
+  refundForm.send_email = true;
 }
 
 async function updateStatus(id: string, nextStatus: string, trackingNumber?: string) {
@@ -207,6 +277,7 @@ async function verifyPayment(id: string) {
     if (selectedOrder.value?.id === id) {
       selectedOrder.value = await $authFetch(`/api/admin/orders/${id}`);
       trackingNumberForm.value = selectedOrder.value?.tracking_number || "";
+      resetRefundForm();
     }
   } catch (err: any) {
     toast.add({
@@ -230,6 +301,7 @@ async function resendOrderEmail(id: string) {
     });
     selectedOrder.value = await $authFetch(`/api/admin/orders/${id}`);
     trackingNumberForm.value = selectedOrder.value?.tracking_number || "";
+    resetRefundForm();
   } catch (err: any) {
     toast.add({
       title: "ส่งอีเมลไม่สำเร็จ",
@@ -239,6 +311,53 @@ async function resendOrderEmail(id: string) {
     });
   } finally {
     isSendingEmail.value = false;
+  }
+}
+
+async function submitRefund() {
+  if (!selectedOrder.value || !canRefundSelectedOrder.value) return;
+
+  const amount = Number(refundForm.amount || 0);
+  if (!amount || amount <= 0 || amount > selectedRefundRemaining.value) {
+    toast.add({
+      title: "ยอดคืนเงินไม่ถูกต้อง",
+      description: `ยอดคืนต้องมากกว่า 0 และไม่เกิน ${formatPrice(selectedRefundRemaining.value)}`,
+      color: "warning",
+      icon: "i-lucide-alert-circle",
+    });
+    return;
+  }
+
+  const ok = window.confirm(`ยืนยันคืนเงิน ${formatPrice(amount)} สำหรับ ${selectedOrder.value.id}?`);
+  if (!ok) return;
+
+  isRefunding.value = true;
+  try {
+    const res = await $authFetch<any>(`/api/admin/orders/${selectedOrder.value.id}/refunds`, {
+      method: "POST",
+      body: refundForm,
+    });
+
+    toast.add({
+      title: selectedOrder.value.payment_method === "credit_card" ? "ส่งคำขอคืนเงินผ่าน Omise แล้ว" : "บันทึกการคืนเงินแล้ว",
+      description: res.email?.sent ? "ส่งอีเมลแจ้งลูกค้าแล้ว" : "บันทึกสำเร็จ",
+      color: "success",
+      icon: "i-lucide-rotate-ccw",
+    });
+
+    await refresh();
+    selectedOrder.value = await $authFetch(`/api/admin/orders/${selectedOrder.value.id}`);
+    trackingNumberForm.value = selectedOrder.value?.tracking_number || "";
+    resetRefundForm();
+  } catch (err: any) {
+    toast.add({
+      title: "คืนเงินไม่สำเร็จ",
+      description: err.data?.statusMessage || err.message,
+      color: "error",
+      icon: "i-lucide-alert-circle",
+    });
+  } finally {
+    isRefunding.value = false;
   }
 }
 
@@ -308,6 +427,19 @@ watch(
                 :color="paymentStatusColor(row.original.payment_status)"
                 variant="subtle"
               />
+            </template>
+
+            <template #refund_status-cell="{ row }">
+              <div class="flex flex-col gap-1">
+                <UBadge
+                  :label="refundStatusLabel(row.original.refund_status)"
+                  :color="refundStatusColor(row.original.refund_status)"
+                  variant="subtle"
+                />
+                <span v-if="Number(row.original.refunded_amount || 0) > 0" class="text-xs text-muted">
+                  {{ formatPrice(row.original.refunded_amount) }}
+                </span>
+              </div>
             </template>
 
             <template #status-cell="{ row }">
@@ -430,6 +562,154 @@ watch(
             <p class="text-sm text-muted">ตรวจสอบสถานะจริงจาก Omise ก่อนยืนยันการชำระเงิน</p>
           </div>
           <UButton icon="i-lucide-shield-check" label="Verify with Omise" color="warning" variant="soft" @click="verifyPayment(selectedOrder.id)" />
+        </div>
+
+        <div v-if="selectedOrder.payment_status === 'success'" class="overflow-hidden rounded-lg border border-default bg-default">
+          <div class="border-b border-default bg-elevated/60 p-5">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div class="flex gap-3">
+                <div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning">
+                  <UIcon name="i-lucide-rotate-ccw" class="size-5" />
+                </div>
+                <div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="text-base font-black">การคืนเงิน</h3>
+                    <UBadge
+                      :label="refundStatusLabel(selectedOrder.refund_status)"
+                      :color="refundStatusColor(selectedOrder.refund_status)"
+                      variant="subtle"
+                    />
+                  </div>
+                  <p class="mt-1 text-sm leading-6 text-muted">{{ refundNotice }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-5">
+            <div class="grid gap-3 sm:grid-cols-3">
+              <div class="rounded-lg border border-default bg-elevated p-4">
+                <div class="mb-2 flex items-center gap-2 text-xs font-medium text-muted">
+                  <UIcon name="i-lucide-receipt" class="size-4" />
+                  <span>ยอดคำสั่งซื้อ</span>
+                </div>
+                <p class="text-lg font-black">{{ formatPrice(selectedOrder.total) }}</p>
+              </div>
+              <div class="rounded-lg border border-default bg-elevated p-4">
+                <div class="mb-2 flex items-center gap-2 text-xs font-medium text-muted">
+                  <UIcon name="i-lucide-check-circle-2" class="size-4" />
+                  <span>คืนแล้ว</span>
+                </div>
+                <p class="text-lg font-black">{{ formatPrice(selectedRefundedAmount) }}</p>
+              </div>
+              <div class="rounded-lg border border-warning/30 bg-warning/10 p-4">
+                <div class="mb-2 flex items-center gap-2 text-xs font-medium text-muted">
+                  <UIcon name="i-lucide-banknote" class="size-4" />
+                  <span>คืนได้อีก</span>
+                </div>
+                <p class="text-lg font-black">{{ formatPrice(selectedRefundRemaining) }}</p>
+              </div>
+            </div>
+
+            <div v-if="canRefundSelectedOrder" class="mt-4 rounded-lg border border-default bg-elevated">
+              <div class="border-b border-default px-4 py-3">
+                <p class="font-bold">ทำรายการคืนเงิน</p>
+                <p class="text-sm text-muted">ตรวจสอบยอดและรายละเอียดให้ถูกต้องก่อนกดยืนยัน</p>
+              </div>
+
+              <div class="space-y-4 p-4">
+                <div class="grid gap-4 md:grid-cols-2">
+                  <UFormField label="ยอดที่ต้องการคืน" description="กรอกยอดเต็มหรือบางส่วนได้">
+                    <UInput
+                      v-model.number="refundForm.amount"
+                      type="number"
+                      min="1"
+                      :max="selectedRefundRemaining"
+                      step="0.01"
+                      icon="i-lucide-banknote"
+                      class="w-full"
+                    />
+                  </UFormField>
+                  <UFormField label="เหตุผล" description="ใช้แสดงในประวัติการคืนเงิน">
+                    <USelect v-model="refundForm.reason" :items="refundReasonItems" icon="i-lucide-message-square-text" class="w-full" />
+                  </UFormField>
+                </div>
+
+                <div v-if="selectedOrder.payment_method === 'promptpay'" class="rounded-lg border border-warning/30 bg-warning/10 p-4">
+                  <div class="mb-3 flex items-start gap-2 text-sm">
+                    <UIcon name="i-lucide-info" class="mt-0.5 size-4 shrink-0 text-warning" />
+                    <p class="text-muted">PromptPay ต้องโอนคืนเอง แล้วกรอกรายละเอียดไว้เป็นหลักฐานให้ทีมตรวจย้อนหลังได้</p>
+                  </div>
+                  <div class="grid gap-4 md:grid-cols-2">
+                    <UFormField label="เลขอ้างอิงการโอนคืน">
+                      <UInput v-model="refundForm.transaction_reference" icon="i-lucide-receipt-text" placeholder="เช่น REF123456789" class="w-full" />
+                    </UFormField>
+                    <UFormField label="ธนาคาร">
+                      <UInput v-model="refundForm.bank_name" icon="i-lucide-building-2" placeholder="เช่น กสิกรไทย" class="w-full" />
+                    </UFormField>
+                    <UFormField label="ชื่อบัญชีผู้รับเงิน">
+                      <UInput v-model="refundForm.bank_account_name" icon="i-lucide-user" class="w-full" />
+                    </UFormField>
+                    <UFormField label="เลขบัญชี/พร้อมเพย์">
+                      <UInput v-model="refundForm.bank_account_number" icon="i-lucide-credit-card" class="w-full" />
+                    </UFormField>
+                  </div>
+                </div>
+
+                <UFormField label="หมายเหตุถึงลูกค้า" description="ข้อความนี้จะอยู่ในอีเมลแจ้งลูกค้า">
+                  <UTextarea
+                    v-model="refundForm.note"
+                    :rows="4"
+                    autoresize
+                    placeholder="เช่น คืนเงินบางส่วนจากการปรับรายการสินค้า"
+                    class="w-full"
+                  />
+                </UFormField>
+              </div>
+
+              <div class="flex flex-col gap-3 border-t border-default px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <UCheckbox v-model="refundForm.send_email" label="ส่งอีเมลแจ้งลูกค้า" />
+                <UButton
+                  icon="i-lucide-rotate-ccw"
+                  :label="selectedOrder.payment_method === 'credit_card' ? 'คืนเงินผ่าน Omise' : 'บันทึกการคืนเงิน'"
+                  color="warning"
+                  size="lg"
+                  :loading="isRefunding"
+                  class="justify-center sm:min-w-44"
+                  @click="submitRefund"
+                />
+              </div>
+            </div>
+
+            <div v-else class="mt-4 flex items-start gap-3 rounded-lg border border-default bg-elevated p-4 text-sm text-muted">
+              <UIcon name="i-lucide-circle-check" class="mt-0.5 size-5 shrink-0 text-success" />
+              <p>คืนเงินครบแล้ว หรือช่องทางนี้ยังไม่รองรับการคืนเงินจากหน้านี้</p>
+            </div>
+
+            <div v-if="selectedOrder.refunds?.length" class="mt-4 overflow-hidden rounded-lg border border-default">
+              <div class="border-b border-default bg-elevated px-4 py-3">
+                <p class="font-bold">ประวัติการคืนเงิน</p>
+              </div>
+              <div class="divide-y divide-default">
+                <div v-for="refund in selectedOrder.refunds" :key="refund.id" class="grid gap-3 p-4 sm:grid-cols-[1fr_auto]">
+                  <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <p class="font-bold">{{ formatPrice(refund.amount) }}</p>
+                      <UBadge :label="refundMethodLabel(refund.method)" color="neutral" variant="subtle" />
+                      <UBadge :label="refund.status" color="warning" variant="subtle" />
+                    </div>
+                    <p class="mt-1 text-sm text-muted">{{ formatDate(refund.created_at) }} · {{ refund.reason || "ไม่ระบุเหตุผล" }}</p>
+                    <p v-if="refund.note" class="mt-1 text-sm text-muted">{{ refund.note }}</p>
+                  </div>
+                  <div class="text-sm text-muted sm:text-right">
+                    <p v-if="refund.omise_refund_id">Omise: {{ refund.omise_refund_id }}</p>
+                    <p v-if="refund.transaction_reference">Ref: {{ refund.transaction_reference }}</p>
+                    <p v-if="refund.created_by_username || refund.created_by">โดย {{ refund.created_by_username || refund.created_by }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">

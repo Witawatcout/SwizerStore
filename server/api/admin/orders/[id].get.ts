@@ -1,10 +1,12 @@
 import { requireSuperAdmin } from "~~/server/utils/auth";
 import { query } from "~~/server/utils/db";
+import { ensureOrderRefundSchema, getOrderRefunds } from "~~/server/utils/orderRefunds";
 import { ensureOrderTrackingSchema } from "~~/server/utils/orderTracking";
 
 export default defineEventHandler(async (event) => {
   requireSuperAdmin(event);
   await ensureOrderTrackingSchema();
+  await ensureOrderRefundSchema();
 
   const id = decodeURIComponent(getRouterParam(event, "id") || "");
   const rows = await query<any>(
@@ -38,6 +40,7 @@ export default defineEventHandler(async (event) => {
     "SELECT product_id, product_name, unit_price, quantity, subtotal FROM order_items WHERE order_id = ?",
     [id]
   );
+  const refunds = await getOrderRefunds(id);
 
-  return { ...rows[0], items };
+  return { ...rows[0], items, refunds };
 });

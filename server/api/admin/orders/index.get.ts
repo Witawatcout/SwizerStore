@@ -1,10 +1,12 @@
 import { requireSuperAdmin } from "~~/server/utils/auth";
 import { query } from "~~/server/utils/db";
+import { ensureOrderRefundSchema } from "~~/server/utils/orderRefunds";
 import { ensureOrderTrackingSchema } from "~~/server/utils/orderTracking";
 
 export default defineEventHandler(async (event) => {
   requireSuperAdmin(event);
   await ensureOrderTrackingSchema();
+  await ensureOrderRefundSchema();
 
   const filters = getQuery(event);
   const where: string[] = [];
@@ -89,6 +91,8 @@ export default defineEventHandler(async (event) => {
        o.tracking_number,
        o.payment_method,
        o.payment_status,
+       o.refund_status,
+       o.refunded_amount,
        o.subtotal,
        o.shipping_fee,
        o.total,

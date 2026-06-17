@@ -82,6 +82,15 @@ export async function retrieveCharge(chargeId: string) {
   return requestOmise<any>(`/charges/${encodeURIComponent(chargeId)}`);
 }
 
+export async function createRefund(input: {
+  chargeId: string;
+  amount: number;
+}) {
+  return requestOmise<any>(`/charges/${encodeURIComponent(input.chargeId)}/refunds`, {
+    amount: input.amount,
+  });
+}
+
 export function isChargeSuccessful(charge: any) {
   return charge?.paid === true || charge?.status === "successful";
 }
