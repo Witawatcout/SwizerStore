@@ -4,6 +4,13 @@
 
 ![SwizerStore](public/Home/1200x600-1-scaled.jpg)
 
+## เว็บไซต์
+
+| Environment | URL |
+| --- | --- |
+| Production | [https://swizerstore.com/](https://swizerstore.com/) |
+| UAT | [https://uat.swizerstore.com/](https://uat.swizerstore.com/) |
+
 ## ความสามารถของระบบ
 
 ### หน้าร้านและลูกค้า
