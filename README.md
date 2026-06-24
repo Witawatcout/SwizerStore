@@ -66,110 +66,31 @@
 | Email | SMTP over TLS |
 | Rich Text | Tiptap |
 
-## เริ่มต้นใช้งาน
+## User Flow หลัก
 
-### 1. ติดตั้ง Dependencies
+1. ลูกค้าเลือกดูสินค้าและเพิ่มสินค้าลงตะกร้า
+2. กรอกข้อมูลจัดส่งและเลือกชำระด้วยบัตรหรือ PromptPay
+3. ระบบตรวจสอบราคา สถานะสินค้า และสต็อกจากฐานข้อมูลอีกครั้ง
+4. ระบบสร้างคำสั่งซื้อและติดตามผลการชำระเงินผ่าน Omise
+5. ลูกค้าได้รับอีเมลยืนยันและติดตามสถานะคำสั่งซื้อได้
+6. ผู้ดูแลจัดการคำสั่งซื้อ การจัดส่ง และการคืนเงินจากระบบหลังบ้าน
 
-```bash
-npm install
-```
+## จุดเด่นด้านการพัฒนา
 
-### 2. ตั้งค่า Environment Variables
+- ออกแบบเป็น Full-stack Application ภายใน Nuxt โดยแยก UI, API และ Business Logic ชัดเจน
+- คำนวณราคาและตรวจสอบสต็อกซ้ำฝั่ง Server เพื่อป้องกันข้อมูลจาก Client ไม่ตรงกับฐานข้อมูล
+- ใช้ Database Transaction และ Row Lock ระหว่างสร้างคำสั่งซื้อ
+- มีระบบจองสต็อกสำหรับ PromptPay ที่ยังรอชำระและคืนสต็อกเมื่อรายการหมดอายุ
+- เชื่อมต่อ Payment Gateway จริงทั้งการสร้างรายการ รับ Webhook และคืนเงิน
+- แบ่งสิทธิ์แบบ Role-based Access Control ระหว่างผู้ใช้, Admin และ Super Admin
+- ใช้ bcrypt สำหรับรหัสผ่าน, JWT สำหรับ Session และ Rate Limit กับ Endpoint สำคัญ
+- ตรวจสอบลายเซ็น Webhook ก่อนเปลี่ยนสถานะการชำระเงิน
+- ส่งอีเมลแบบ Transactional สำหรับยืนยันบัญชี รีเซ็ตรหัสผ่าน และสถานะคำสั่งซื้อ
+- รองรับ Responsive Design ทั้งหน้าร้านและ Dashboard หลังบ้าน
 
-สร้างไฟล์ `.env.development` ที่ root ของโปรเจกต์ โดยห้าม commit ไฟล์นี้ขึ้น Git
+## ขอบเขตผลงาน
 
-```dotenv
-ENV_NAME=development
-
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_USER=
-DB_PASS=
-DB_NAME=
-
-BASE_URL=http://localhost:3000
-API_BASE=http://localhost:3000
-
-TOKEN_SECRET=
-TOKEN_EXPIRES=7d
-TOKEN_NAME=swizer_token
-
-OMISE_PUBLIC_KEY=
-OMISE_SECRET_KEY=
-OMISE_WEBHOOK_SECRET=
-
-SMTP_HOST=
-SMTP_PORT=587
-SMTP_USER=
-SMTP_PASS=
-SMTP_FROM=
-SMTP_SECURE=false
-ADMIN_EMAIL=
-```
-
-`OMISE_PUBLIC_KEY` เป็นค่าที่ส่งไปยังเบราว์เซอร์ ส่วน `OMISE_SECRET_KEY`, `OMISE_WEBHOOK_SECRET`, `TOKEN_SECRET`, รหัสผ่านฐานข้อมูล และรหัสผ่าน SMTP ต้องเก็บไว้ฝั่ง Server เท่านั้น
-
-สามารถสร้าง `TOKEN_SECRET` แบบสุ่มได้ด้วยคำสั่ง:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-```
-
-### 3. เตรียมฐานข้อมูล
-
-โปรเจกต์ใช้ MySQL/MariaDB และต้องมีตารางหลัก `users`, `products`, `categories` และ `news` ก่อน จากนั้นให้รันไฟล์ใน `server/database/migrations` ตามลำดับชื่อไฟล์ เพื่อเพิ่มระบบคำสั่งซื้อ การชำระเงิน โปรไฟล์จัดส่ง การยืนยันอีเมล Role และการคืนเงิน
-
-> อย่านำ Database dump, ข้อมูลผู้ใช้จริง หรือ Password hash ขึ้น Git
-
-### 4. รัน Development Server
-
-```bash
-npm run dev
-```
-
-เปิด [http://localhost:3000](http://localhost:3000)
-
-## คำสั่งที่ใช้บ่อย
-
-| คำสั่ง | รายละเอียด |
-| --- | --- |
-| `npm run dev` | รัน Development Server ด้วย `.env.development` |
-| `npm run build:dev` | Build สำหรับ Development |
-| `npm run build:uat` | Build สำหรับ UAT ด้วย `.env.uat` |
-| `npm run build:prod` | Build สำหรับ Production ด้วย `.env.production` |
-| `npm run preview` | Preview Production Build |
-| `npm run run:build` | รัน Nitro Server จาก `.output` |
-
-## โครงสร้างโปรเจกต์
-
-```text
-app/
-├── components/          # UI และส่วนประกอบของหน้าร้าน/หลังบ้าน
-├── composables/         # Logic ที่นำกลับมาใช้ซ้ำ
-├── layouts/             # Layout หน้าร้านและ Admin
-├── pages/               # Routing ของ Nuxt
-├── plugins/             # Auth refresh และระบบแปลภาษา
-└── store/               # Pinia stores สำหรับ Auth และ Cart
-
-server/
-├── api/                 # REST API ของระบบ
-├── database/migrations/ # Database migrations
-├── middleware/          # Authentication และ Authorization
-└── utils/               # Database, Payment, Email และ Business logic
-
-public/                  # Static assets
-uploads/                 # Runtime uploads (ไม่ถูก commit)
-```
-
-## ความปลอดภัย
-
-- ไฟล์ `.env.*`, runtime uploads และ local database dump ถูก ignore จาก Git
-- รหัสผ่านผู้ใช้จัดเก็บเป็น bcrypt hash
-- API หลังบ้านตรวจ Role ระหว่าง `admin` และ `super_admin`
-- Endpoint สำคัญมี Rate Limit และตรวจสอบข้อมูลก่อนบันทึก
-- Webhook ตรวจสอบลายเซ็นก่อนอัปเดตสถานะการชำระเงิน
-
-ก่อน Deploy ควรใช้ HTTPS, กำหนด Secret ใหม่สำหรับแต่ละ Environment และตั้งค่า Omise Webhook ให้ชี้มายัง `/api/webhook/omise`
+โปรเจกต์นี้แสดงการพัฒนา Web Application ตั้งแต่หน้าจอผู้ใช้งานไปจนถึงระบบหลังบ้าน ได้แก่ UI/UX, State Management, REST API, Authentication, Authorization, Relational Database, Payment Integration, Email Service และการจัดการข้อมูลเชิงธุรกิจของระบบ E-commerce
 
 ## License
 
