@@ -8,6 +8,7 @@ import { isAdminRole, isSuperAdminRole } from '@/utils/adminAccess'
 const auth = useAuthStore()
 const cart = useCartStore()
 const route = useRoute()
+const { paymentEnabled } = useStorefrontSettings()
 
 const isLoggedIn = computed(() => Boolean(auth.token))
 const isAdmin = computed(() => isAdminRole(auth.user?.role))
@@ -93,6 +94,10 @@ const accountMenuItems = computed(() => {
       { label: 'ตะกร้าสินค้า', icon: 'i-lucide-shopping-cart', to: '/cart' },
     ],
   ]
+
+  if (!paymentEnabled.value) {
+    groups[1] = groups[1].filter((item: any) => item.to !== '/cart')
+  }
 
   if (isAdmin.value) {
     const adminGroup: NavigationMenuItem[] = [
@@ -224,7 +229,7 @@ watch(
           />
         </UTooltip>
 
-        <UTooltip text="ตะกร้าสินค้า">
+        <UTooltip v-if="paymentEnabled" text="ตะกร้าสินค้า">
           <button
             data-cart-icon
             class="relative rounded-full p-3 text-white transition-colors hover:bg-white/5 hover:text-primary-400 lg:p-4"

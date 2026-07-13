@@ -16,6 +16,7 @@ const props = defineProps<{
 }>()
 
 const cartStore = useCartStore()
+const { paymentEnabled, openLine } = useStorefrontSettings()
 const added = ref(false)  // ✅ เพิ่ม state
 const { fly } = useFlyToCart()
 const btnRef = ref<HTMLElement | null>(null)
@@ -57,6 +58,15 @@ const addToCart = () => {
   }, 1500)
 
   if (btnRef.value) fly(btnRef.value)
+}
+
+const handlePrimaryAction = () => {
+  if (!paymentEnabled.value) {
+    openLine()
+    return
+  }
+
+  addToCart()
 }
 </script>
 
@@ -124,15 +134,18 @@ const addToCart = () => {
         </div>
 
         <!-- ✅ ปุ่มที่มี animation -->
-        <button @click.stop.prevent="addToCart" :class="[
+        <button @click.stop.prevent="handlePrimaryAction" :class="[
           'w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300 transform-gpu cursor-pointer z-20',
-          added
+          !paymentEnabled
+            ? 'bg-[#06c755] shadow-[#06c755]/20 group-hover:scale-110'
+            : added
             ? 'bg-primary-600 scale-110 shadow-primary-600/30'
             : 'bg-neutral-950 group-hover:bg-primary-600 group-hover:scale-110 shadow-neutral-950/10 group-hover:shadow-primary-600/20'
         ]" ref="btnRef">
           <Transition name="cart-icon" mode="out-in">
             <!-- ✅ ไอคอน + -->
-            <Icon v-if="!added" key="plus" name="mynaui:plus" class="text-2xl text-white" />
+            <Icon v-if="!paymentEnabled" key="line" name="i-lucide-message-circle" class="text-2xl text-white" />
+            <Icon v-else-if="!added" key="plus" name="mynaui:plus" class="text-2xl text-white" />
             <!-- ✅ ไอคอน ✓ -->
             <Icon v-else key="check" name="mynaui:check" class="text-2xl text-white" />
           </Transition>

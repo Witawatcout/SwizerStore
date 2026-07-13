@@ -12,6 +12,7 @@ const config = useRuntimeConfig()
 const auth = useAuthStore()
 const cart = useCartStore()
 const toast = useToast()
+const { paymentEnabled } = useStorefrontSettings()
 
 useHead({ title: 'Checkout | Swizer Superfoods' })
 
@@ -133,6 +134,7 @@ async function submitCheckout(token?: string) {
 }
 
 async function handleSubmit() {
+  if (!paymentEnabled.value) return navigateTo('/cart')
   if (cart.items.length === 0) return navigateTo('/cart')
   if (!validateForm()) {
     toast.add({ title: 'กรุณากรอกข้อมูลจัดส่งให้ครบ', color: 'error', icon: 'i-lucide-alert-circle' })
@@ -176,6 +178,11 @@ async function handleSubmit() {
 }
 
 onMounted(() => {
+  if (!paymentEnabled.value) {
+    navigateTo('/cart')
+    return
+  }
+
   if (!cart.items.length) navigateTo('/cart')
   if (auth.token) {
     $authFetch<any>('/api/customers/latest')

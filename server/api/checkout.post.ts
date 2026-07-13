@@ -4,6 +4,7 @@ import { ensureProductPricingSchema, effectiveProductPrice } from "~~/server/uti
 import { createCardCharge, createPromptPaySource, createSourceCharge, isChargeSuccessful, toSatang } from "~~/server/utils/omise";
 import { expirePromptPayReservations, generateOrderId, markOrderPaymentFailed, markOrderPaymentSuccess } from "~~/server/utils/orders";
 import { checkRateLimit, getRateLimitInfo } from "~~/server/utils/rateLimit";
+import { getStorefrontSettings } from "~~/server/utils/storefrontSettings";
 
 interface CheckoutItem {
   id: string;
@@ -55,6 +56,14 @@ export default defineEventHandler(async (event) => {
 
   const auth = getOptionalAuth(event);
   const body = await readBody<CheckoutBody>(event);
+  const settings = await getStorefrontSettings();
+
+  if (!settings.payment_enabled) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: "Online payment is currently disabled. Please contact us on LINE.",
+    });
+  }
 
   if (!["credit_card", "promptpay"].includes(body.paymentMethod)) {
     throw createError({ statusCode: 400, statusMessage: "Invalid payment method" });

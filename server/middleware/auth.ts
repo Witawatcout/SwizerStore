@@ -13,7 +13,8 @@ export default defineEventHandler((event) => {
     (path.startsWith("/api/products") ||
       path.startsWith("/api/categories") ||
       path.startsWith("/api/news") ||
-      path.startsWith("/api/orders/"));
+      path.startsWith("/api/orders/") ||
+      path === "/api/settings/storefront");
 
   if (isPublicRead) return;
 

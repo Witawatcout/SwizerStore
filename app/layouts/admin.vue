@@ -23,6 +23,10 @@ const items = computed<NavigationMenuItem[]>(() => {
     label: 'News',
     icon: 'i-lucide-newspaper',
     to: '/Admin/News'
+  }, {
+    label: 'Settings',
+    icon: 'i-lucide-settings',
+    to: '/Admin/Settings'
   }]
 
   if (!isSuperAdmin.value) return baseItems

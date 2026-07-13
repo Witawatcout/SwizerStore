@@ -135,14 +135,14 @@
           <div
             class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 items-center justify-center fade-in-up"
             style="animation-delay: 500ms;">
-            <div v-for="(logo, idx) in partnerLogos" :key="idx"
+            <a v-for="(logo, idx) in partnerLogos" :key="idx" :href="logo.link" target="_blank"
               class="bg-white rounded-[2rem] p-6 lg:p-8 hover:shadow-[0_20px_40px_rgba(0,0,0,0.6)] transition-all duration-500 flex items-center justify-center aspect-[4/3] group relative overflow-hidden cursor-pointer transform-gpu hover:-translate-y-2">
               <div
                 class="absolute inset-0 bg-primary-500/0 group-hover:bg-primary-500/5 transition-colors duration-500">
               </div>
               <img :src="logo.src" :alt="logo.alt"
                 class="w-full h-full object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-500 will-change-transform" />
-            </div>
+            </a>
           </div>
         </div>
       </section>
@@ -269,8 +269,8 @@ const partnerLogos = [
   // { src: Baimiang, alt: 'Baimiang' },
   // { src: HealthyPlanet, alt: 'Healthy Planet' },
   // { src: Watsons_logotype, alt: 'Watsons' },
-  { src: Shopee, alt: 'Shopee' },
-  { src: Lazada, alt: 'Lazada' },
+  { src: Shopee, alt: 'Shopee', link: "https://shopee.co.th/swizer_store" },
+  { src: Lazada, alt: 'Lazada', link: "https://www.lazada.co.th/shop/swizer-store" },
 ]
 
 useHead({

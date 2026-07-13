@@ -2,6 +2,7 @@
 import { useCartStore } from '~/store/cart'
 
 const cart = useCartStore()
+const { paymentEnabled, lineUrl } = useStorefrontSettings()
 
 useHead({ title: 'ตะกร้าสินค้า | Swizer Superfoods' })
 
@@ -27,7 +28,16 @@ const formatPrice = (price: number) =>
         <UButton to="/products" icon="i-lucide-arrow-left" label="เลือกสินค้าต่อ" color="neutral" variant="soft" />
       </div>
 
-      <div v-if="cart.items.length === 0" class="rounded-lg border border-neutral-200 bg-white p-12 text-center shadow-sm">
+      <div v-if="!paymentEnabled" class="rounded-lg border border-primary-200 bg-primary-50 p-12 text-center shadow-sm">
+        <div class="mx-auto flex size-16 items-center justify-center rounded-full bg-white text-primary-700">
+          <UIcon name="i-lucide-message-circle" class="size-8" />
+        </div>
+        <h2 class="mt-5 text-2xl font-black text-neutral-950">สั่งซื้อผ่าน LINE</h2>
+        <p class="mx-auto mt-2 max-w-md text-sm text-neutral-700">ตอนนี้ระบบตะกร้าและชำระเงินบนเว็บปิดอยู่ กรุณาติดต่อทีมงานทาง LINE เพื่อสั่งซื้อสินค้า</p>
+        <UButton :to="lineUrl" target="_blank" label="คุยกับเราทาง LINE" icon="i-lucide-message-circle" class="mt-6" size="lg" />
+      </div>
+
+      <div v-else-if="cart.items.length === 0" class="rounded-lg border border-neutral-200 bg-white p-12 text-center shadow-sm">
         <div class="mx-auto flex size-16 items-center justify-center rounded-full bg-neutral-100 text-neutral-400">
           <UIcon name="i-lucide-shopping-cart" class="size-8" />
         </div>

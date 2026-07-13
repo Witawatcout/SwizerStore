@@ -58,6 +58,7 @@
             <div class="space-y-4 pt-8 border-t border-neutral-200">
               <div class="flex flex-col sm:flex-row items-center gap-4">
                 <div
+                  v-if="paymentEnabled"
                   class="flex items-center bg-neutral-100 rounded-full px-2 py-1.5 w-full sm:w-auto justify-between sm:justify-center border border-neutral-200">
                   <BaseButton variant="ghost" size="sm" icon="mynaui:minus" @click="qty = Math.max(1, qty - 1)" />
                   <span class="px-6 font-bold text-lg select-none w-10 text-center">{{ qty }}</span>
@@ -65,8 +66,8 @@
                 </div>
                 <!-- _id_.vue template -->
                 <div ref="cartBtnRef" class="flex-1 w-full">
-                  <BaseButton variant="primary" size="lg" icon="mynaui:cart" class="w-full" @click="addToCart">
-                    Add to Cart
+                  <BaseButton variant="primary" size="lg" :icon="paymentEnabled ? 'mynaui:cart' : 'i-lucide-message-circle'" class="w-full" @click="addToCart">
+                    {{ paymentEnabled ? 'Add to Cart' : 'คุยกับเราทาง LINE' }}
                   </BaseButton>
                 </div>
               </div>
@@ -179,6 +180,7 @@ import { useFlyToCart } from '~/composables/useFlyToCart'
 const route = useRoute()
 const cartStore = useCartStore()
 const { fly } = useFlyToCart()
+const { paymentEnabled, openLine } = useStorefrontSettings()
 const productId = computed(() => route.params.id as string)
 
 const { data: product, status } = useLazyFetch<any>(() => `/api/products/${productId.value}`)
@@ -210,6 +212,10 @@ watch(productId, () => {
 
 const addToCart = () => {
   if (!product.value) return
+  if (!paymentEnabled.value) {
+    openLine()
+    return
+  }
 
   cartStore.addItem({
     id: product.value.id,           // ✅ ส่ง string ตรงๆ ไม่ต้อง Number()
