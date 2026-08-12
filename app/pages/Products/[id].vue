@@ -77,26 +77,25 @@
               <div
                 class="p-6 bg-neutral-50 rounded-lg space-y-2 border border-neutral-100 transition-colors hover:bg-neutral-100">
                 <Icon name="mynaui:truck" class="text-primary-600 text-2xl" />
-                <h4 class="font-headline font-bold text-sm">Fast Shipping</h4>
-                <p class="text-xs text-neutral-500">Arrives in 2-3 business days.</p>
+                <h4 class="font-headline font-bold text-sm">จัดส่งทั่วไทย</h4>
+                <p class="text-xs text-neutral-500">เตรียมสินค้าภายใน 1–3 วันทำการ</p>
               </div>
               <div
                 class="p-6 bg-neutral-50 rounded-lg space-y-2 border border-neutral-100 transition-colors hover:bg-neutral-100">
                 <Icon name="mynaui:badge-check" class="text-primary-600" />
-                <h4 class="font-headline font-bold text-sm">Certified Quality</h4>
-                <p class="text-xs text-neutral-500">Purity and potency guaranteed.</p>
+                <h4 class="font-headline font-bold text-sm">ตรวจสอบข้อมูลก่อนซื้อ</h4>
+                <p class="text-xs text-neutral-500">อ่านส่วนประกอบ ฉลาก และเลขสารบบอาหาร</p>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Health Benefits Section -->
+        <!-- Product information section -->
         <section v-if="product.benefits && product.benefits.length" class="mt-32 space-y-12">
           <div class="text-center max-w-2xl mx-auto space-y-4 fade-in-up"
             style="animation-delay: 200ms; animation-duration: 1s;">
-            <h2 class="text-4xl font-extrabold font-headline tracking-tight">The Bioactive Edge</h2>
-            <p class="text-neutral-500">More than just a flavor profile—our products are functional powerhouses designed
-              to support your body's vital systems from the inside out.</p>
+            <h2 class="text-4xl font-extrabold font-headline tracking-tight">ข้อมูลผลิตภัณฑ์</h2>
+            <p class="text-neutral-500">ตรวจสอบรายละเอียด ส่วนประกอบ วิธีรับประทาน และคำเตือนบนฉลากก่อนเลือกซื้อ</p>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div v-for="(benefit, i) in product.benefits" :key="benefit.title"

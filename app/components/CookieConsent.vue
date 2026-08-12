@@ -4,8 +4,17 @@ const isVisible = ref(false)
 
 type CookieConsentChoice = 'necessary' | 'all'
 
+const openSettings = () => {
+  isVisible.value = true
+}
+
 onMounted(() => {
   isVisible.value = !localStorage.getItem(storageKey)
+  window.addEventListener('swizer-open-cookie-settings', openSettings)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('swizer-open-cookie-settings', openSettings)
 })
 
 const saveConsent = (choice: CookieConsentChoice) => {
@@ -51,6 +60,10 @@ const saveConsent = (choice: CookieConsentChoice) => {
             <p class="max-w-3xl text-sm leading-6 text-white/75 sm:text-base">
               เราใช้คุกกี้ที่จำเป็นเพื่อให้ระบบตะกร้า การเข้าสู่ระบบ และการชำระเงินทำงานได้ถูกต้อง
               และขอความยินยอมสำหรับคุกกี้วิเคราะห์หรือการตลาดเพื่อพัฒนาเว็บไซต์และข้อเสนอให้เหมาะกับคุณ
+              อ่านรายละเอียดใน
+              <NuxtLink to="/policies/cookies" class="font-bold text-primary-300 underline underline-offset-4">นโยบายคุกกี้</NuxtLink>
+              และ
+              <NuxtLink to="/policies/privacy" class="font-bold text-primary-300 underline underline-offset-4">นโยบายความเป็นส่วนตัว</NuxtLink>
             </p>
           </div>
         </div>

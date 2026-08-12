@@ -21,6 +21,7 @@ const isSubmitting = ref(false)
 const promptPayQr = ref('')
 const orderId = ref('')
 const countdown = ref(15 * 60)
+const acceptedPolicies = ref(false)
 
 const form = reactive({
   first_name: '',
@@ -138,6 +139,15 @@ async function handleSubmit() {
   if (cart.items.length === 0) return navigateTo('/cart')
   if (!validateForm()) {
     toast.add({ title: 'กรุณากรอกข้อมูลจัดส่งให้ครบ', color: 'error', icon: 'i-lucide-alert-circle' })
+    return
+  }
+  if (!acceptedPolicies.value) {
+    toast.add({
+      title: 'กรุณายอมรับนโยบายร้านค้า',
+      description: 'โปรดอ่านและยอมรับเงื่อนไขการจัดส่ง การยกเลิก และการคืนเงินก่อนชำระเงิน',
+      color: 'warning',
+      icon: 'i-lucide-file-check-2',
+    })
     return
   }
 
@@ -369,10 +379,39 @@ onMounted(() => {
               </div>
             </div>
 
+            <section v-if="!promptPayQr" class="space-y-4 border-t border-neutral-200 pt-6">
+              <div class="flex items-start gap-3 rounded-lg border border-primary-200 bg-primary-50 p-4">
+                <UIcon name="i-lucide-info" class="mt-0.5 size-5 shrink-0 text-primary-700" />
+                <div class="text-sm leading-6 text-primary-950">
+                  <p class="font-black">สรุปการยกเลิกและคืนเงิน</p>
+                  <p class="mt-1">
+                    ยกเลิกได้ก่อนจัดส่ง สินค้าที่ยังไม่เปิดซีลขอคืนได้ภายใน 7 วันหลังได้รับสินค้า
+                    และเมื่ออนุมัติ ร้านค้าจะเริ่มคืนเงินภายใน 7 วันทำการ
+                  </p>
+                  <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-bold">
+                    <NuxtLink to="/policies/shipping" target="_blank" class="underline underline-offset-4">นโยบายการจัดส่ง</NuxtLink>
+                    <NuxtLink to="/policies/cancellation-refund" target="_blank" class="underline underline-offset-4">การยกเลิกและคืนเงิน</NuxtLink>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3 rounded-lg border border-neutral-200 bg-white p-4">
+                <UCheckbox id="accepted-policies" v-model="acceptedPolicies" name="accepted-policies" class="mt-0.5 shrink-0" />
+                <label for="accepted-policies" class="cursor-pointer text-sm leading-6 text-neutral-700">
+                  ข้าพเจ้าได้อ่านและยอมรับ
+                  <NuxtLink to="/policies/shipping" target="_blank" class="font-bold text-primary-700 hover:underline">นโยบายการจัดส่ง</NuxtLink>,
+                  <NuxtLink to="/policies/cancellation-refund" target="_blank" class="font-bold text-primary-700 hover:underline">นโยบายการยกเลิก คืนสินค้า และคืนเงิน</NuxtLink>
+                  รวมถึง
+                  <NuxtLink to="/policies/privacy" target="_blank" class="font-bold text-primary-700 hover:underline">นโยบายความเป็นส่วนตัว</NuxtLink>
+                </label>
+              </div>
+            </section>
+
             <UButton
               v-if="!promptPayQr"
               type="submit"
               :loading="isSubmitting"
+              :disabled="!acceptedPolicies"
               icon="i-lucide-lock"
               label="ยืนยันคำสั่งซื้อ"
               size="xl"

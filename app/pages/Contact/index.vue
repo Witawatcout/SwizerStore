@@ -50,23 +50,21 @@
             </div>
           </div>
 
-          <!-- Interactive Map Container -->
+          <!-- Company location -->
           <div class="relative overflow-hidden rounded-[2rem] bg-neutral-200 aspect-video shadow-lg group border border-neutral-100 fade-in-up" style="animation-delay: 500ms;">
-            <img alt="Location Map" class="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:scale-105 group-hover:opacity-100 transition-all duration-[1.5s]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBt44a1Smdd0XnGlXmDJWmoAZV4AU369CbFEn1mtAQ7YVp7cVaBIOu-QhMwrtV9_PO8cwFEBYjWssXHv2ZkraKpNgldaOIbyjMjgzfaRFXMpb5C1H21ECjuGxboV75NYbqPz4CciClVoZbsCnMBDcTBayGOq6A-0w0ac5fPKCK9HZzKocknL-7zBOtYKS0t6UGemllTMLme-_Uk_Z_PYoRmKswxy-f9UXXg44FrTueZhZ12FpPmA2FuxNi8nUZhfdHBNZ20c5IZQSDf" />
-            <div class="absolute inset-0 bg-gradient-to-t from-neutral-900/60 via-transparent to-transparent pointer-events-none transition-opacity group-hover:opacity-60"></div>
-            
-            <div class="absolute bottom-6 left-6 bg-white/95 backdrop-blur-md px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-white/50">
-              <div class="relative flex h-3 w-3">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-primary-500"></span>
-              </div>
-              <span class="text-sm font-bold text-neutral-800 tracking-wide">Swizer</span>
-            </div>
+            <iframe
+              title="ที่ตั้งบริษัท พฤกษาธารา จำกัด"
+              src="https://www.google.com/maps?q=45%2F7%20Soi%20Kheha%20Romklao%2064%20Lat%20Krabang%20Bangkok%2010520&output=embed"
+              class="size-full border-0"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              allowfullscreen
+            />
           </div>
         </div>
 
         <!-- Right Side: Contact Form -->
-        <div class="bg-white p-8 md:p-12 lg:p-14 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] border border-neutral-100 relative fade-in-up" style="animation-delay: 400ms;">
+        <div id="contact-form" class="scroll-mt-28 bg-white p-8 md:p-12 lg:p-14 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] border border-neutral-100 relative fade-in-up" style="animation-delay: 400ms;">
           <!-- decorative blur behind form -->
           <div class="absolute top-0 right-0 w-64 h-64 bg-primary-50 rounded-full blur-[60px] opacity-60 -z-10 pointer-events-none"></div>
 
@@ -76,6 +74,15 @@
           </div>
 
           <form @submit.prevent="submitForm" class="space-y-6 relative z-10">
+            <UAlert
+              v-if="isRefundRequest"
+              color="primary"
+              variant="soft"
+              icon="i-lucide-rotate-ccw"
+              title="คำขอเกี่ยวกับการยกเลิกหรือคืนเงิน"
+              description="กรุณาระบุหมายเลขคำสั่งซื้อ ชื่อผู้สั่งซื้อ และเหตุผลในช่องข้อความ หากมีภาพหลักฐาน สามารถส่งเพิ่มเติมทางอีเมลหรือ LINE"
+              class="rounded-2xl"
+            />
             <UAlert
               v-if="successMessage"
               color="primary"
@@ -140,10 +147,14 @@ useHead({
   title: 'ติดต่อเรา | Swizer Superfoods'
 })
 
+const route = useRoute()
+const isRefundRequest = computed(() => route.query.topic === 'refund')
+const initialSubject = () => isRefundRequest.value ? 'ขอยกเลิกคำสั่งซื้อ / คืนสินค้า / คืนเงิน' : ''
+
 const form = ref({
   name: '',
   email: '',
-  subject: '',
+  subject: initialSubject(),
   message: ''
 })
 const sending = ref(false)
@@ -196,7 +207,7 @@ const submitForm = async () => {
     form.value = {
       name: '',
       email: '',
-      subject: '',
+      subject: initialSubject(),
       message: ''
     }
   } catch (error: any) {

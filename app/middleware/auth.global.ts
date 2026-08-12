@@ -10,6 +10,7 @@ export default defineNuxtRouteMiddleware((to) => {
   const isPublic = publicPages.includes(to.path.toLowerCase()) ||
     to.path.toLowerCase().startsWith('/products/') ||
     to.path.toLowerCase().startsWith('/news/') ||
+    to.path.toLowerCase().startsWith('/policies/') ||
     to.path.toLowerCase().startsWith('/order/')
 
   if (isPublic) {

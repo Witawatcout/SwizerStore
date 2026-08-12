@@ -65,7 +65,7 @@
                 ผ่านกรรมวิธีการผลิตและการแปรรูปน้อยที่สุด เพื่อรักษาสารอาหารที่สำคัญไว้อย่างครบถ้วน
               </p>
               <p>
-                เราใส่ใจในทุกขั้นตอนการผลิตที่ได้มาตรฐานและปลอดภัย นำเสนอในรูปแบบที่ทานง่าย ตอบโจทย์ไลฟ์สไตล์คนยุคใหม่
+                เราใส่ใจการคัดเลือกผลิตภัณฑ์ที่มีแหล่งผลิตและฉลากชัดเจน พร้อมนำเสนอข้อมูลที่จำเป็นต่อการตัดสินใจ
                 ให้คุณสามารถดูแลสุขภาพของคุณและคนในครอบครัวได้อย่างยั่งยืน
               </p>
             </div>
@@ -187,8 +187,8 @@
                 </div>
                 <div>
                   <h4 class="font-bold text-xl text-neutral-900 mb-1 group-hover:text-primary-600 transition-colors">
-                    คัดสรรจากธรรมชาติ 100%</h4>
-                  <p class="text-neutral-500 font-medium text-lg leading-relaxed">ผลิตภัณฑ์ของเราไร้การปรุงแต่ง ปราศจากการดัดแปลงพันธุกรรม ปลอดภัยต่อร่างกาย</p>
+                    ใส่ใจข้อมูลผลิตภัณฑ์</h4>
+                  <p class="text-neutral-500 font-medium text-lg leading-relaxed">แสดงส่วนประกอบ ข้อมูลโภชนาการ วิธีรับประทาน และคำเตือนตามฉลากผลิตภัณฑ์</p>
                 </div>
               </li>
             </ul>
@@ -198,7 +198,7 @@
             <div class="absolute inset-0 bg-neutral-950"></div>
             <img alt="Fresh harvest in sun"
               class="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-90 transition-transform duration-[2s] ease-out group-hover:scale-105 will-change-transform"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBrn3vx-489KTTDxqyesWjsJ-HCvcuC-BS-WoecTC6sXglR-KSzPFkJCGT73DB18mS6elCmEm3H83QtlvpU01PIuLHeoPap8kwMYdZo_lLQUK60NyhYIFYWodMI6f4kLU3Z7UxKKrPa6LcIgqBOKyuBNqd9gP5yh1vRXd-qW2NoYsC0AumrD1TShdvYoaic2LqoxIxe6DhGg0R_bnHrXNDm7iuyMcpwe0QwS3VqlktaGlBYePqOvMGtJ_i7aeu3rTPUt2iohW-rS9-s" />
+              src="/Home/1200x600-2-scaled.jpg" />
             <div
               class="absolute inset-0 bg-gradient-to-t from-primary-900/90 via-primary-900/30 to-transparent mix-blend-multiply opacity-80 group-hover:opacity-60 transition-opacity duration-700">
             </div>
@@ -206,7 +206,7 @@
             <div
               class="absolute bottom-12 left-10 right-10 md:bottom-16 md:left-14 md:right-14 z-10 transition-transform duration-700 group-hover:-translate-y-2 transform-gpu">
               <h3 class="font-headline text-4xl lg:text-5xl text-white font-black mb-6 leading-tight drop-shadow-md">
-                ฟื้นฟู มากกว่ารักษา</h3>
+                เติบโตไปพร้อมกับชุมชน</h3>
               <p class="text-white/90 font-medium text-lg leading-relaxed drop-shadow-sm max-w-xl">
                  เราไม่เพียงตั้งเป้าหมายแค่การอนุรักษ์ธรรมชาติให้อยู่รอด แต่เราร่วมมุ่งมั่นเพื่อ <span
                   class="font-bold underline decoration-primary-400 decoration-2 underline-offset-4">ฟื้นฟูแผ่นดิน</span>
