@@ -113,7 +113,7 @@
       </section>
 
       <!-- The Where to Buy section -->
-      <section class="py-32 bg-neutral-900 overflow-hidden relative fade-in-up" style="animation-delay: 300ms;">
+      <section v-if="retailers?.length" class="py-32 bg-neutral-900 overflow-hidden relative fade-in-up" style="animation-delay: 300ms;">
         <!-- Ambient Background Glow -->
         <div class="absolute top-0 left-0 w-full h-full pointer-events-none">
           <div class="absolute top-[-10%] right-[-5%] w-[800px] h-[800px] bg-primary-600/20 rounded-full blur-[150px]">
@@ -135,12 +135,12 @@
           <div
             class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 items-center justify-center fade-in-up"
             style="animation-delay: 500ms;">
-            <a v-for="(logo, idx) in partnerLogos" :key="idx" :href="logo.link" target="_blank"
+            <a v-for="logo in retailers" :key="logo.id" :href="logo.link || undefined" target="_blank" rel="noopener"
               class="bg-white rounded-[2rem] p-6 lg:p-8 hover:shadow-[0_20px_40px_rgba(0,0,0,0.6)] transition-all duration-500 flex items-center justify-center aspect-[4/3] group relative overflow-hidden cursor-pointer transform-gpu hover:-translate-y-2">
               <div
                 class="absolute inset-0 bg-primary-500/0 group-hover:bg-primary-500/5 transition-colors duration-500">
               </div>
-              <img :src="logo.src" :alt="logo.alt"
+              <img :src="logo.image" :alt="logo.name"
                 class="w-full h-full object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-500 will-change-transform" />
             </a>
           </div>
@@ -248,30 +248,11 @@
 <script setup lang="ts">
 import Bgimage from '@@/public/Home/1200x600-1-scaled.jpg'
 
-import Baimiang from '@@/public/Swizer/Baimiang.png'
-import FoodlandLogo from '@@/public/Swizer/FoodlandLogo.png'
-import Gourmet from '@@/public/Swizer/Gourmet.png'
-import HealthyPlanet from '@@/public/Swizer/Healthy Planet.png'
-import TokyuDepartmentStoreLogo from '@@/public/Swizer/TokyuDepartmentStoreLogo.png'
-import TopLogo from '@@/public/Swizer/TopLogo.png'
-import Lazada from '@@/public/Swizer/Lazada_(2019).svg.png'
-import Shopee from '@@/public/Swizer/Shopee.png'
-import Watsons_logotype from '@@/public/Swizer/Watsons.png'
 
 import Product1 from '@@/public/Home/Untitled-6.jpg'
 import Product2 from '@@/public/Home/Untitled-3.jpg'
 import Product3 from '@@/public/Home/Untitled-4.jpg'
-const partnerLogos = [
-  // { src: TopLogo, alt: 'Tops Supermarket' },
-  // { src: Gourmet, alt: 'Gourmet Market' },
-  // { src: FoodlandLogo, alt: 'Foodland' },
-  // { src: TokyuDepartmentStoreLogo, alt: 'Tokyu Department Store' },
-  // { src: Baimiang, alt: 'Baimiang' },
-  // { src: HealthyPlanet, alt: 'Healthy Planet' },
-  // { src: Watsons_logotype, alt: 'Watsons' },
-  { src: Shopee, alt: 'Shopee', link: "https://shopee.co.th/swizer_store" },
-  { src: Lazada, alt: 'Lazada', link: "https://www.lazada.co.th/shop/swizer-store" },
-]
+const { data: retailers } = useLazyFetch<any[]>('/api/retailers')
 
 useHead({
   title: 'เกี่ยวกับเรา | Swizer Superfoods'

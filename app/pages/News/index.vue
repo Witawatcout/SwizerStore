@@ -27,7 +27,7 @@
           <div class="relative z-10 p-8 md:p-16 w-full max-w-5xl transition-transform duration-700 group-hover:-translate-y-2">
             <div class="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-bold tracking-widest uppercase shadow-lg">
               <span class="w-2 h-2 rounded-full bg-primary-400 animate-[pulse_2s_ease-in-out_infinite]"></span>
-              {{ heroArticle.tag }}
+              {{ newsTagLabel(heroArticle.tag) }}
             </div>
             <h1 class="font-headline text-4xl md:text-5xl lg:text-7xl font-extrabold text-white leading-[1.15] mb-6 tracking-tight drop-shadow-lg" style="white-space: pre-line;">
               {{ heroArticle.title }}
@@ -49,10 +49,10 @@
           <h2 class="text-4xl font-extrabold font-headline tracking-tight text-neutral-900 mb-2">บทความล่าสุด</h2>
         </div>
         
-        <div class="flex flex-wrap items-center gap-2.5">
-          <button v-for="(cat, idx) in categories" :key="cat"
+        <div v-if="categories.length > 1" class="flex flex-wrap items-center gap-2.5">
+          <button v-for="cat in categories" :key="cat" type="button" @click="activeCategory = cat"
             class="px-6 py-2.5 rounded-full font-bold text-sm transition-all duration-300"
-            :class="idx === 0 
+            :class="activeCategory === cat 
               ? 'bg-neutral-900 text-white shadow-md shadow-neutral-900/20 hover:scale-105' 
               : 'bg-white text-neutral-600 hover:bg-neutral-100 border border-neutral-200 hover:border-neutral-300'">
             {{ cat }}
@@ -71,14 +71,14 @@
                 <img :alt="largePost.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1.5s] ease-out" :src="largePost.image" />
                 <div class="absolute inset-0 bg-neutral-900/0 group-hover:bg-neutral-900/5 transition-colors duration-500"></div>
                 <div class="absolute top-4 left-4">
-                  <span class="bg-white/90 backdrop-blur-sm text-neutral-900 font-bold text-xs tracking-widest px-4 py-1.5 rounded-full shadow-sm uppercase">{{ largePost.tag }}</span>
+                  <span class="bg-white/90 backdrop-blur-sm text-neutral-900 font-bold text-xs tracking-widest px-4 py-1.5 rounded-full shadow-sm uppercase">{{ newsTagLabel(largePost.tag) }}</span>
                 </div>
               </div>
               <div class="px-4 pb-4 flex flex-col flex-grow">
                 <div class="flex items-center gap-3 mb-4 text-xs font-bold text-neutral-400 uppercase tracking-widest">
-                  <span>{{ largePost.date }}</span>
+                  <span>{{ newsDate(largePost) }}</span>
                   <span class="w-1 h-1 rounded-full bg-neutral-300"></span>
-                  <span class="flex items-center gap-1"><Icon name="mynaui:clock" class="text-[14px]" /> 4 Min Read</span>
+                  <span class="flex items-center gap-1"><Icon name="mynaui:clock" class="text-[14px]" /> {{ newsReadMinutes(largePost.content) }} Min Read</span>
                 </div>
                 <h2 class="font-headline text-3xl md:text-4xl font-extrabold mb-4 leading-[1.2] group-hover:text-primary-600 transition-colors text-balance">
                   {{ largePost.title }}
@@ -104,7 +104,7 @@
                   <Icon :name="index === 0 ? 'mynaui:leaf' : 'mynaui:coffee'" class="text-2xl" />
                 </div>
                 <div class="flex items-center gap-3 mb-4 text-xs font-bold text-neutral-400 uppercase tracking-widest">
-                  <span class="text-primary-600">{{ post.tag }}</span>
+                  <span class="text-primary-600">{{ newsTagLabel(post.tag) }}</span>
                 </div>
                 <h3 class="font-headline text-2xl font-extrabold mb-4 leading-tight group-hover:text-neutral-900 transition-colors text-balance text-neutral-800">
                   {{ post.title }}
@@ -143,12 +143,16 @@ useHead({
   title: 'News & Articles | Swizer Superfoods'
 })
 
-const categories = [
-  'ทั้งหมด', 'สุขภาพองค์รวม', 'สูตรอาหารคลีน', 'เกษตรอินทรีย์', 'รีวิวผลิตภัณฑ์', 'Lifestyle'
-]
+const ALL = 'ทั้งหมด'
+const activeCategory = ref(ALL)
+const categories = computed(() => [ALL, ...new Set(newsItems.value.flatMap(n => newsTags(n.tag)))])
+const filteredPosts = computed(() => {
+  const rest = newsItems.value.slice(1)
+  return activeCategory.value === ALL ? rest : rest.filter(n => newsTags(n.tag).includes(activeCategory.value))
+})
 
 const heroArticle = computed(() => newsItems.value[0] || null)
-const largePost = computed(() => newsItems.value[1] || null)
-const sidePosts = computed(() => newsItems.value.slice(2, 4))
-const bottomPosts = computed(() => newsItems.value.slice(4))
+const largePost = computed(() => filteredPosts.value[0] || null)
+const sidePosts = computed(() => filteredPosts.value.slice(1, 3))
+const bottomPosts = computed(() => filteredPosts.value.slice(3))
 </script>

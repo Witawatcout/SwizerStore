@@ -3,6 +3,10 @@
     class="bg-background text-on-background font-body selection:bg-primary-container selection:text-on-primary-container">
     <main class="pt-32 pb-20">
       <div class="max-w-screen-2xl mx-auto px-8">
+        <button type="button" @click="goBack"
+          class="mb-8 inline-flex items-center gap-2 text-sm font-bold text-neutral-500 transition-colors hover:text-primary-600">
+          <Icon name="mynaui:arrow-long-left-solid" class="text-lg" /> ย้อนกลับ
+        </button>
         <!-- Product Section: Two Column Layout -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
 
@@ -11,7 +15,7 @@
             <div class="relative aspect-square bg-neutral-100 rounded-xl overflow-hidden group">
               <img :alt="product.name"
                 class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                :src="product.image" />
+                :src="activeImage || product.image" />
               <div v-if="product.badge" class="absolute top-6 left-6 flex flex-col gap-3">
                 <span
                   class="bg-primary-500 text-white px-4 py-2 rounded-full text-xs font-bold font-label tracking-widest uppercase shadow-md">{{
@@ -19,11 +23,12 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-6" v-if="product.gallery && product.gallery.length > 0">
-              <div v-for="(img, idx) in product.gallery" :key="idx"
-                class="aspect-square bg-neutral-100 rounded-lg overflow-hidden cursor-pointer hover:ring-2 ring-primary transition-all shadow-sm hover:shadow-md">
+            <div class="grid grid-cols-3 gap-6" v-if="galleryImages.length > 1">
+              <button v-for="(img, idx) in galleryImages" :key="img" type="button" @click="activeImage = img"
+                :class="(activeImage || product.image) === img ? 'ring-2 ring-primary-500' : 'hover:ring-2 ring-primary-300'"
+                class="aspect-square bg-neutral-100 rounded-lg overflow-hidden cursor-pointer transition-all shadow-sm hover:shadow-md">
                 <img :alt="`${product.name} detail ${idx + 1}`" class="w-full h-full object-cover" :src="img" />
-              </div>
+              </button>
             </div>
           </div>
 
@@ -202,11 +207,20 @@ const discountPercent = computed(() => hasSalePrice.value
   : 0
 )
 
+const activeImage = ref('')
+const galleryImages = computed<string[]>(() =>
+  [...new Set([product.value?.image, ...(product.value?.gallery || [])].filter(Boolean))]
+)
+
+const router = useRouter()
+const goBack = () => window.history.state?.back ? router.back() : router.push('/products')
+
 const qty = ref(1)
 const cartBtnRef = ref<HTMLElement | null>(null)  // ✅ ref ปุ่ม
 
 watch(productId, () => {
   qty.value = 1
+  activeImage.value = ''
 })
 
 const addToCart = () => {

@@ -13,6 +13,7 @@ export default defineEventHandler((event) => {
     (path.startsWith("/api/products") ||
       path.startsWith("/api/categories") ||
       path.startsWith("/api/news") ||
+      path.startsWith("/api/retailers") ||
       path.startsWith("/api/orders/") ||
       path === "/api/settings/storefront");
 
@@ -32,6 +33,7 @@ export default defineEventHandler((event) => {
   const isCatalogWrite =
     (path.startsWith("/api/categories") ||
       path.startsWith("/api/news") ||
+      path.startsWith("/api/retailers") ||
       path.startsWith("/api/upload")) &&
     method !== "GET";
   const isSuperAdminOnly =

@@ -91,7 +91,7 @@ function configureTranslate(translate: TranslateJs) {
   translate.ignore.id = Array.from(new Set([...(translate.ignore.id || []), '__nuxt-devtools-container']))
 
   translate.language?.setLocal?.(LANGUAGE_CONFIG.th.translateJsLanguage)
-  translate.service?.use?.('client.edge')
+  translate.service?.use?.('translate.service')
   translate.listener?.start?.()
 }
 

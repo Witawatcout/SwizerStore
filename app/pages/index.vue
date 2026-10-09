@@ -246,7 +246,7 @@
           </NuxtLink>
         </div>
 
-        <div v-if="isHomeLoading" class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div v-if="isHomeLoading || homeNewsStatus === 'pending' || homeNewsStatus === 'idle'" class="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div v-for="i in 3" :key="`home-news-skeleton-${i}`"
             class="overflow-hidden rounded-[2rem] bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] fade-in-up"
             :style="{ animationDelay: `${300 + i * 100}ms` }" aria-hidden="true">
@@ -274,11 +274,11 @@
                 loading="lazy" />
               <div
                 class="absolute top-5 left-5 px-4 py-1.5 bg-white/90 backdrop-blur-sm text-primary-700 rounded-full text-xs font-bold font-label tracking-widest uppercase shadow-sm">
-                {{ news.tag }}
+                {{ newsTagLabel(news.tag) }}
               </div>
             </div>
             <div class="p-8 flex flex-col flex-grow">
-              <p class="text-sm font-bold text-neutral-400 mb-3">{{ news.date }}</p>
+              <p class="text-sm font-bold text-neutral-400 mb-3">{{ newsDate(news) }}</p>
               <h3
                 class="font-headline text-2xl font-black mb-4 text-neutral-900 group-hover:text-primary-600 transition-colors line-clamp-2 leading-tight pr-4">
                 {{ news.title }}</h3>
@@ -306,7 +306,6 @@ import Img5 from '@@/public/Home/1200x600-6-scaled.jpg'
 import Img6 from '@@/public/Home/1200x600-7-scaled.jpg'
 import StoryImg from '@@/public/Home/Products-scaled.jpg'
 
-import { newsItems } from '../assets/news'
 
 useHead({
   title: 'Swizer Superfoods'
@@ -343,6 +342,7 @@ const productsSection = {
 
 const { data: homeProductsData, status: homeProductsStatus } = useLazyFetch<any[]>('/api/products')
 const { data: homeCategoriesData, status: homeCategoriesStatus } = useLazyFetch<any[]>('/api/categories')
+const { data: homeNewsData, status: homeNewsStatus } = useLazyFetch<any[]>('/api/news')
 
 const homeProducts = computed(() => homeProductsData.value || [])
 const homeCategories = computed(() => homeCategoriesData.value || [])
@@ -405,7 +405,7 @@ const isProductsSectionLoading = computed(() =>
   homeCategoriesStatus.value === 'idle'
 )
 
-const latestNews = newsItems.slice(0, 3)
+const latestNews = computed(() => (homeNewsData.value || []).slice(0, 3))
 
 const story = {
   titleLine1: 'SWIZER',

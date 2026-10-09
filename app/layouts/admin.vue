@@ -24,6 +24,10 @@ const items = computed<NavigationMenuItem[]>(() => {
     icon: 'i-lucide-newspaper',
     to: '/Admin/News'
   }, {
+    label: 'Where to Buy',
+    icon: 'i-lucide-store',
+    to: '/Admin/Retailers'
+  }, {
     label: 'Settings',
     icon: 'i-lucide-settings',
     to: '/Admin/Settings'

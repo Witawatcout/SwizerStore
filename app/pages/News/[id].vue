@@ -19,18 +19,16 @@
 
       <!-- Hero Content -->
       <div class="relative z-10 w-full max-w-screen-xl mx-auto px-6 md:px-12 pb-24 md:pb-32 text-center fade-in-up" style="animation-duration: 1s;">
-        <span class="inline-block px-4 py-1.5 mb-6 rounded-full bg-primary-500 text-white text-xs font-bold tracking-widest uppercase shadow-lg shadow-primary-500/30">
-          {{ post.tag }}
+        <span v-if="tags.length" class="inline-block px-4 py-1.5 mb-6 rounded-full bg-primary-500 text-white text-xs font-bold tracking-widest uppercase shadow-lg shadow-primary-500/30">
+          {{ newsTagLabel(post.tag) }}
         </span>
         <h1 class="font-headline text-4xl md:text-5xl lg:text-7xl font-extrabold text-white leading-[1.15] tracking-tight mb-8 max-w-5xl mx-auto drop-shadow-xl text-balance" style="white-space: pre-line;">
           {{ post.title }}
         </h1>
         <div class="flex flex-wrap items-center justify-center gap-4 text-white/80 font-medium text-sm md:text-base">
-          <span class="flex items-center gap-2"><Icon name="mynaui:calendar" class="text-[18px]" /> {{ post.date || 'ล่าสุด' }}</span>
+          <span class="flex items-center gap-2"><Icon name="mynaui:calendar" class="text-[18px]" /> {{ displayDate }}</span>
           <span class="w-1.5 h-1.5 rounded-full bg-white/40 mx-2 hidden sm:block"></span>
-          <span class="flex items-center gap-2"><Icon name="mynaui:book-open" class="text-[18px]" /> อ่าน 5 นาที</span>
-          <span class="w-1.5 h-1.5 rounded-full bg-white/40 mx-2 hidden sm:block"></span>
-          <span class="flex items-center gap-2"><Icon name="mynaui:user" class="text-[18px]" /> โดย Swizer Team</span>
+          <span class="flex items-center gap-2"><Icon name="mynaui:book-open" class="text-[18px]" /> อ่าน {{ readMinutes }} นาที</span>
         </div>
       </div>
     </header>
@@ -52,27 +50,22 @@
 
         <!-- Article Footer / Tags & Social -->
         <div class="max-w-3xl mx-auto mt-24 pt-10 border-t border-neutral-100 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div class="flex items-center flex-wrap gap-3">
+          <div v-if="tags.length" class="flex items-center flex-wrap gap-3">
             <span class="font-bold text-sm text-neutral-400 uppercase tracking-widest mr-2 block w-full md:w-auto text-center md:text-left">Tags</span>
-            <span class="px-5 py-2 bg-neutral-50 text-neutral-600 rounded-full text-xs font-bold hover:bg-neutral-900 hover:text-white transition-colors cursor-pointer border border-neutral-200">#{{ post.tag }}</span>
-            <span class="px-5 py-2 bg-neutral-50 text-neutral-600 rounded-full text-xs font-bold hover:bg-neutral-900 hover:text-white transition-colors cursor-pointer border border-neutral-200">#Health</span>
-            <span class="px-5 py-2 bg-neutral-50 text-neutral-600 rounded-full text-xs font-bold hover:bg-neutral-900 hover:text-white transition-colors cursor-pointer border border-neutral-200">#Superfoods</span>
+            <span v-for="tag in tags" :key="tag" class="px-5 py-2 bg-neutral-50 text-neutral-600 rounded-full text-xs font-bold border border-neutral-200">#{{ tag }}</span>
           </div>
           
           <div class="flex items-center gap-4">
             <span class="font-bold text-sm text-neutral-400 uppercase tracking-widest">Share</span>
-            <button class="w-12 h-12 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-600 hover:bg-primary-600 hover:text-white hover:border-primary-600 transition-all shadow-sm hover:shadow-primary-600/30 hover:-translate-y-1">
+            <button type="button" aria-label="Share" @click="sharePost" class="w-12 h-12 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-600 hover:bg-primary-600 hover:text-white hover:border-primary-600 transition-all shadow-sm hover:shadow-primary-600/30 hover:-translate-y-1">
               <Icon name="mynaui:share" class="text-[20px]" />
-            </button>
-            <button class="w-12 h-12 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-600 hover:text-red-500 hover:bg-red-50 hover:border-red-500 transition-all shadow-sm hover:shadow-red-500/30 hover:-translate-y-1">
-              <Icon name="mynaui:heart-solid" class="text-[20px]" />
             </button>
           </div>
         </div>
       </article>
       
       <!-- Read Next / Related Section -->
-      <section class="mt-32 w-full max-w-screen-xl mx-auto fade-in-up" style="animation-delay: 600ms;">
+      <section v-if="relatedPosts.length" class="mt-32 w-full max-w-screen-xl mx-auto fade-in-up" style="animation-delay: 600ms;">
         <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 border-b border-neutral-200 pb-4 gap-4">
           <h3 class="font-headline text-3xl font-extrabold text-neutral-900">บทความอื่นๆ ที่น่าสนใจ</h3>
           <NuxtLink to="/news" class="text-primary-600 font-bold hover:underline underline-offset-4 flex items-center gap-1">ดูทั้งหมด <Icon name="mynaui:arrow-long-right-solid" class="text-sm" /></NuxtLink>
@@ -84,7 +77,7 @@
                <img :src="related.image" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1.5s] ease-out" />
                <div class="absolute inset-0 bg-neutral-900/0 group-hover:bg-neutral-900/10 transition-colors duration-500"></div>
                <div class="absolute top-4 left-4">
-                 <span class="bg-white/90 backdrop-blur-sm text-neutral-900 font-bold text-[10px] uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm">{{ related.tag }}</span>
+                 <span class="bg-white/90 backdrop-blur-sm text-neutral-900 font-bold text-[10px] uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm">{{ newsTagLabel(related.tag) }}</span>
                </div>
              </div>
              <div class="px-3 pb-3 flex flex-col flex-grow">
@@ -118,6 +111,21 @@ const relatedPosts = computed(() => {
   if (!allNews.value) return []
   return allNews.value.filter(p => p.id !== route.params.id).slice(0, 3)
 })
+
+const tags = computed(() => newsTags(post.value?.tag))
+const displayDate = computed(() => newsDate(post.value))
+const readMinutes = computed(() => newsReadMinutes(post.value?.content))
+
+const toast = useToast()
+async function sharePost() {
+  const url = window.location.href
+  if (navigator.share) {
+    await navigator.share({ title: post.value?.title, url }).catch(() => {})
+    return
+  }
+  await navigator.clipboard.writeText(url)
+  toast.add({ title: 'คัดลอกลิงก์แล้ว' })
+}
 
 useHead({
   title: post.value ? `${post.value.title} | Swizer Superfoods` : 'Article Not Found'
