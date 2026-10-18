@@ -119,8 +119,19 @@ const relatedPosts = computed(() => {
   return allNews.value.filter(p => p.id !== route.params.id).slice(0, 3)
 })
 
-useHead({
-  title: post.value ? `${post.value.title} | Swizer Superfoods` : 'Article Not Found'
+const articleDescription = computed(() => {
+  const desc = String(post.value?.desc || '').trim()
+  if (desc) return desc
+  const raw = String(post.value?.content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+  return raw ? (raw.length > 160 ? `${raw.slice(0, 157)}...` : raw) : 'บทความสุขภาพและสาระน่ารู้จาก Swizer Store'
+})
+
+useSeoMeta({
+  title: () => post.value ? `${post.value.title} | Swizer Store` : 'ไม่พบบทความ | Swizer Store',
+  description: () => articleDescription.value,
+  ogTitle: () => post.value ? `${post.value.title} | Swizer Store` : 'ไม่พบบทความ | Swizer Store',
+  ogDescription: () => articleDescription.value,
+  ogImage: () => post.value?.image || 'https://www.swizerstore.com/Home/1200x600-1-scaled.jpg',
 })
 </script>
 

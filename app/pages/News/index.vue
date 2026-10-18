@@ -139,8 +139,11 @@
 const { data } = await useFetch<any[]>('/api/news')
 const newsItems = computed(() => data.value || [])
 
-useHead({
-  title: 'News & Articles | Swizer Superfoods'
+useSeoMeta({
+  title: 'ข่าวสารและบทความสุขภาพ | Swizer Store',
+  description: 'อัปเดตเคล็ดลับสุขภาพ ไลฟ์สไตล์ สูตรอาหารคลีน และสาระน่ารู้เกี่ยวกับ Superfoods จากทีมผู้เชี่ยวชาญ Swizer Store',
+  ogTitle: 'ข่าวสารและบทความสุขภาพ | Swizer Store',
+  ogDescription: 'อัปเดตเคล็ดลับสุขภาพ ไลฟ์สไตล์ สูตรอาหารคลีน และสาระน่ารู้เกี่ยวกับ Superfoods จากทีมผู้เชี่ยวชาญ Swizer Store',
 })
 
 const categories = [

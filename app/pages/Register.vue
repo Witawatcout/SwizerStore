@@ -5,8 +5,9 @@ definePageMeta({
   layout: "default",
 })
 
-useHead({
-  title: "สมัครสมาชิก | Swizer Superfoods",
+useSeoMeta({
+  title: "สมัครสมาชิก | Swizer Store",
+  robots: "noindex, nofollow",
 })
 
 const username = ref("")

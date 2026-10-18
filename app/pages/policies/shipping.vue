@@ -1,5 +1,8 @@
 <script setup lang="ts">
-useHead({ title: 'นโยบายการจัดส่ง | Swizer Superfoods' })
+useSeoMeta({
+  title: 'นโยบายการจัดส่ง | Swizer Store',
+  description: 'รายละเอียดการรับคำสั่งซื้อ การเตรียมสินค้า ระยะเวลาจัดส่งทั่วประเทศไทย และแนวทางเมื่อพัสดุล่าช้าหรือสูญหายของ Swizer Store',
+})
 </script>
 
 <template>

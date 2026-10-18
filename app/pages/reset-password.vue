@@ -5,8 +5,9 @@ definePageMeta({
   layout: "default",
 })
 
-useHead({
-  title: "ตั้งรหัสผ่านใหม่ | Swizer Superfoods",
+useSeoMeta({
+  title: "ตั้งรหัสผ่านใหม่ | Swizer Store",
+  robots: "noindex, nofollow",
 })
 
 const route = useRoute()

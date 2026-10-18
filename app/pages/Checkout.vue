@@ -14,7 +14,10 @@ const cart = useCartStore()
 const toast = useToast()
 const { paymentEnabled } = useStorefrontSettings()
 
-useHead({ title: 'Checkout | Swizer Superfoods' })
+useSeoMeta({
+  title: 'ชำระเงิน | Swizer Store',
+  robots: 'noindex, nofollow',
+})
 
 const paymentMethod = ref<'credit_card' | 'promptpay'>('promptpay')
 const isSubmitting = ref(false)

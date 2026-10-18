@@ -1,5 +1,8 @@
 <script setup lang="ts">
-useHead({ title: 'นโยบายคุกกี้ | Swizer Superfoods' })
+useSeoMeta({
+  title: 'นโยบายคุกกี้ | Swizer Store',
+  description: 'รายละเอียดการใช้คุกกี้และพื้นที่จัดเก็บข้อมูลในเบราว์เซอร์ วัตถุประสงค์ และการตั้งค่าความยินยอมของเว็บไซต์ Swizer Store',
+})
 
 const openCookieSettings = () => {
   window.dispatchEvent(new CustomEvent('swizer-open-cookie-settings'))

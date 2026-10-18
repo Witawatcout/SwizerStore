@@ -1,12 +1,46 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import tailwindcss from "@tailwindcss/vite";
 export default defineNuxtConfig({
-    app: {
+  app: {
     head: {
+      htmlAttrs: {
+        lang: 'th',
+      },
+      title: 'Swizer Store | ผลิตภัณฑ์ซุปเปอร์ฟู้ดและอาหารเพื่อสุขภาพระดับพรีเมียม',
+      meta: [
+        { charset: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        {
+          name: 'description',
+          content: 'Swizer Store (สไวเซอร์) แบรนด์ผู้พัฒนาและจัดจำหน่ายผลิตภัณฑ์ Superfoods อาซาอิ เมล็ดเจีย คีนัว กาแฟและโปรตีนเพื่อสุขภาพ คัดสรรวัตถุดิบชั้นเลิศจากต้นตำรับ เพื่อผู้บริโภคชาวไทย',
+        },
+        { name: 'application-name', content: 'Swizer Store' },
+        { name: 'apple-mobile-web-app-title', content: 'Swizer Store' },
+        { name: 'theme-color', content: '#83c63d' },
+        { property: 'og:site_name', content: 'Swizer Store' },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:locale', content: 'th_TH' },
+        {
+          property: 'og:title',
+          content: 'Swizer Store | ผลิตภัณฑ์ซุปเปอร์ฟู้ดและอาหารเพื่อสุขภาพระดับพรีเมียม',
+        },
+        {
+          property: 'og:description',
+          content: 'Swizer Store (สไวเซอร์) แบรนด์ผู้พัฒนาและจัดจำหน่ายผลิตภัณฑ์ Superfoods อาซาอิ เมล็ดเจีย คีนัว กาแฟและโปรตีนเพื่อสุขภาพ คัดสรรวัตถุดิบชั้นเลิศจากต้นตำรับ เพื่อผู้บริโภคชาวไทย',
+        },
+        { property: 'og:image', content: 'https://www.swizerstore.com/Home/1200x600-1-scaled.jpg' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+      ],
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
-      ]
-    }
+        { rel: 'icon', type: 'image/png', sizes: '48x48', href: '/favicon-48x48.png' },
+        { rel: 'icon', type: 'image/png', sizes: '96x96', href: '/favicon-96x96.png' },
+        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
+        { rel: 'icon', type: 'image/png', sizes: '192x192', href: '/icon-192x192.png' },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
+        { rel: 'manifest', href: '/site.webmanifest' },
+      ],
+    },
   },
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },

@@ -1,5 +1,8 @@
 <script setup lang="ts">
-useHead({ title: 'นโยบายการยกเลิก คืนสินค้า และคืนเงิน | Swizer Superfoods' })
+useSeoMeta({
+  title: 'นโยบายการยกเลิก คืนสินค้า และคืนเงิน | Swizer Store',
+  description: 'เงื่อนไขการยกเลิกคำสั่งซื้อ การเปลี่ยนหรือคืนสินค้าภายใน 7 วัน และขั้นตอนการขอคืนเงินของ Swizer Store',
+})
 </script>
 
 <template>

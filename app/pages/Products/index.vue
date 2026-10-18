@@ -1,6 +1,10 @@
 <script setup lang="ts">
-useHead({
-  title: "สินค้า | Swizer Superfoods",
+useSeoMeta({
+  title: "สินค้าทั้งหมด | Swizer Store",
+  description: "เลือกซื้อผลิตภัณฑ์ Superfoods อาซาอิ เมล็ดเจีย คีนัว กาแฟเพื่อสุขภาพ และโปรตีนจากพืช คัดสรรวัตถุดิบคุณภาพระดับพรีเมียมจาก Swizer Store จัดส่งทั่วไทย",
+  ogTitle: "สินค้าทั้งหมด | Swizer Store",
+  ogDescription: "เลือกซื้อผลิตภัณฑ์ Superfoods อาซาอิ เมล็ดเจีย คีนัว กาแฟเพื่อสุขภาพ และโปรตีนจากพืช คัดสรรวัตถุดิบคุณภาพระดับพรีเมียมจาก Swizer Store จัดส่งทั่วไทย",
+  ogImage: "https://www.swizerstore.com/Home/Products-scaled.jpg",
 });
 
 const { data: products, status } = useLazyFetch<any[]>("/api/products");

@@ -172,13 +172,8 @@
 <script setup lang="ts">
 import { useHead } from '#imports'
 
-useHead({
-  title: 'วิธีการสั่งซื้อและชำระเงิน | Swizer Superfoods',
-  meta: [
-    {
-      name: 'description',
-      content: 'ขั้นตอนการสั่งซื้อสินค้าและวิธีการชำระเงินของ Swizer Superfoods ลำดับอย่างละเอียด 6 ขั้นตอน'
-    }
-  ]
+useSeoMeta({
+  title: 'วิธีการสั่งซื้อและชำระเงิน | Swizer Store',
+  description: 'ขั้นตอนการสั่งซื้อสินค้าและวิธีการชำระเงินของ Swizer Store ลำดับอย่างละเอียด 6 ขั้นตอน',
 })
 </script>

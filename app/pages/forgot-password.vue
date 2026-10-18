@@ -5,8 +5,9 @@ definePageMeta({
   layout: "default",
 })
 
-useHead({
-  title: "ลืมรหัสผ่าน | Swizer Superfoods",
+useSeoMeta({
+  title: "ลืมรหัสผ่าน | Swizer Store",
+  robots: "noindex, nofollow",
 })
 
 const email = ref("")

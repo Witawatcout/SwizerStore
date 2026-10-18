@@ -6,8 +6,9 @@ definePageMeta({
   layout: "default",
 })
 
-useHead({
-  title: "เข้าสู่ระบบ | Swizer Superfoods",
+useSeoMeta({
+  title: "เข้าสู่ระบบ | Swizer Store",
+  robots: "noindex, nofollow",
 })
 
 const auth = useAuthStore()

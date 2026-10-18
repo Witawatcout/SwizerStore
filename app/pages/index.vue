@@ -308,8 +308,12 @@ import StoryImg from '@@/public/Home/Products-scaled.jpg'
 
 import { newsItems } from '../assets/news'
 
-useHead({
-  title: 'Swizer Superfoods'
+useSeoMeta({
+  title: 'Swizer Store | ผลิตภัณฑ์ซุปเปอร์ฟู้ดและอาหารเพื่อสุขภาพระดับพรีเมียม',
+  description: 'Swizer Store (สไวเซอร์) แบรนด์ผู้พัฒนาและจัดจำหน่ายผลิตภัณฑ์ Superfoods อาซาอิ เมล็ดเจีย คีนัว กาแฟและโปรตีนเพื่อสุขภาพ คัดสรรวัตถุดิบชั้นเลิศจากต้นตำรับ เพื่อผู้บริโภคชาวไทย',
+  ogTitle: 'Swizer Store | ผลิตภัณฑ์ซุปเปอร์ฟู้ดและอาหารเพื่อสุขภาพระดับพรีเมียม',
+  ogDescription: 'Swizer Store (สไวเซอร์) แบรนด์ผู้พัฒนาและจัดจำหน่ายผลิตภัณฑ์ Superfoods อาซาอิ เมล็ดเจีย คีนัว กาแฟและโปรตีนเพื่อสุขภาพ คัดสรรวัตถุดิบชั้นเลิศจากต้นตำรับ เพื่อผู้บริโภคชาวไทย',
+  ogImage: 'https://www.swizerstore.com/Home/1200x600-1-scaled.jpg',
 })
 
 // ===== DATA =====

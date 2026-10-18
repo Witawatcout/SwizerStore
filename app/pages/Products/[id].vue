@@ -182,11 +182,34 @@ const { fly } = useFlyToCart()
 const { paymentEnabled, openLine } = useStorefrontSettings()
 const productId = computed(() => route.params.id as string)
 
-const { data: product, status } = useLazyFetch<any>(() => `/api/products/${productId.value}`)
+const { data: product, status } = await useFetch<any>(() => `/api/products/${productId.value}`)
 const { data: allProducts } = useLazyFetch<any[]>('/api/products')
 
-useHead({
-  title: computed(() => product.value ? `${product.value.name} | Swizer Superfoods` : 'Product Details | Swizer Superfoods')
+const plainProductDescription = computed(() => {
+  const raw = String(product.value?.description || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (raw) {
+    return raw.length > 160 ? `${raw.slice(0, 157)}...` : raw
+  }
+  return product.value?.name
+    ? `สั่งซื้อ ${product.value.name} ผลิตภัณฑ์เพื่อสุขภาพระดับพรีเมียมจาก Swizer Store จัดส่งทั่วไทย`
+    : 'รายละเอียดผลิตภัณฑ์อาหารเสริมและซุปเปอร์ฟู้ดเพื่อสุขภาพจาก Swizer Store'
+})
+
+const productOgImage = computed(() => {
+  const img = String(product.value?.image || '').trim()
+  if (!img) return 'https://www.swizerstore.com/Home/Products-scaled.jpg'
+  return img.startsWith('http') ? img : `https://www.swizerstore.com${img.startsWith('/') ? '' : '/'}${img}`
+})
+
+useSeoMeta({
+  title: () => product.value ? `${product.value.name} | Swizer Store` : 'รายละเอียดสินค้า | Swizer Store',
+  description: () => plainProductDescription.value,
+  ogTitle: () => product.value ? `${product.value.name} | Swizer Store` : 'รายละเอียดสินค้า | Swizer Store',
+  ogDescription: () => plainProductDescription.value,
+  ogImage: () => productOgImage.value,
 })
 
 const relatedProducts = computed(() => {

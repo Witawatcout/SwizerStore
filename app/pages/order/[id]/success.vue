@@ -11,7 +11,10 @@ const { data: order, refresh } = useLazyFetch<any>(() => `/api/orders/${orderId.
 const now = ref(Date.now())
 const canceling = ref(false)
 
-useHead({ title: computed(() => `Order ${orderId.value} | SwizerStore`) })
+useSeoMeta({
+  title: () => `คำสั่งซื้อ ${orderId.value} | Swizer Store`,
+  robots: 'noindex, nofollow',
+})
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(price)

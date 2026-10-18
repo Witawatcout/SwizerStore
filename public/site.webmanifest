@@ -1,0 +1,31 @@
+{
+  "name": "Swizer Store",
+  "short_name": "Swizer Store",
+  "description": "Swizer (สไวเซอร์) แบรนด์ผลิตภัณฑ์ Superfoods อาซาอิ เมล็ดเจีย คีนัว กาแฟและโปรตีนเพื่อสุขภาพ นำเข้าวัตถุดิบชั้นเลิศจากต้นตำรับ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#83c63d",
+  "icons": [
+    {
+      "src": "/favicon-48x48.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

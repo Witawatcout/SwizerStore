@@ -4,7 +4,10 @@ import { useCartStore } from '~/store/cart'
 const cart = useCartStore()
 const { paymentEnabled, lineUrl } = useStorefrontSettings()
 
-useHead({ title: 'ตะกร้าสินค้า | Swizer Superfoods' })
+useSeoMeta({
+  title: 'ตะกร้าสินค้า | Swizer Store',
+  robots: 'noindex, nofollow',
+})
 
 const shippingFee = computed(() => 0)
 const total = computed(() => cart.totalPrice + shippingFee.value)

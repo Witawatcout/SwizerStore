@@ -273,8 +273,12 @@ const partnerLogos = [
   { src: Lazada, alt: 'Lazada', link: "https://www.lazada.co.th/shop/swizer-store" },
 ]
 
-useHead({
-  title: 'เกี่ยวกับเรา | Swizer Superfoods'
+useSeoMeta({
+  title: 'เกี่ยวกับเรา | Swizer Store',
+  description: 'เรื่องราวของ Swizer Store (สไวเซอร์) แบรนด์ผู้พัฒนาและจัดจำหน่ายผลิตภัณฑ์ Superfoods คัดสรรวัตถุดิบคุณภาพสูงสุดจากแหล่งกำเนิดธรรมชาติ เพื่อสุขภาพที่ดีของคนไทย',
+  ogTitle: 'เกี่ยวกับเรา | Swizer Store',
+  ogDescription: 'เรื่องราวของ Swizer Store (สไวเซอร์) แบรนด์ผู้พัฒนาและจัดจำหน่ายผลิตภัณฑ์ Superfoods คัดสรรวัตถุดิบคุณภาพสูงสุดจากแหล่งกำเนิดธรรมชาติ เพื่อสุขภาพที่ดีของคนไทย',
+  ogImage: 'https://www.swizerstore.com/Home/1200x600-1-scaled.jpg',
 })
 </script>
 

@@ -1,5 +1,8 @@
 <script setup lang="ts">
-useHead({ title: 'นโยบายความเป็นส่วนตัว | Swizer Superfoods' })
+useSeoMeta({
+  title: 'นโยบายความเป็นส่วนตัว | Swizer Store',
+  description: 'นโยบายความเป็นส่วนตัวของ บริษัท พฤกษาธารา จำกัด (Swizer Store) เกี่ยวกับการเก็บรวบรวม ใช้ เปิดเผย และคุ้มครองข้อมูลส่วนบุคคลของลูกค้า',
+})
 </script>
 
 <template>

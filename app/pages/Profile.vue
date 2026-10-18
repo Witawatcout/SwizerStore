@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/store/auth'
 
-useHead({ title: 'ตั้งค่าโปรไฟล์ | SwizerStore' })
+useSeoMeta({
+  title: 'ตั้งค่าโปรไฟล์ | Swizer Store',
+  robots: 'noindex, nofollow',
+})
 
 const auth = useAuthStore()
 const toast = useToast()

@@ -1,5 +1,8 @@
 <script setup lang="ts">
-useHead({ title: "คำสั่งซื้อของฉัน | SwizerStore" });
+useSeoMeta({
+  title: "คำสั่งซื้อของฉัน | Swizer Store",
+  robots: "noindex, nofollow",
+});
 
 const toast = useToast();
 const { data: orders, status, refresh } = useAuthFetch<any[]>("/api/orders");

@@ -148,6 +148,14 @@ useHead({
 })
 
 const route = useRoute()
+
+useSeoMeta({
+  title: 'ติดต่อเรา | Swizer Store',
+  description: 'ติดต่อ Swizer Store (บริษัท พฤกษาธารา จำกัด) สอบถามข้อมูลผลิตภัณฑ์ การสั่งซื้อ หรือปรึกษาด้านสุขภาพ โทร 084-330-4444, LINE @swizer_superfood หรืออีเมล info@swizerstore.com',
+  ogTitle: 'ติดต่อเรา | Swizer Store',
+  ogDescription: 'ติดต่อ Swizer Store สอบถามข้อมูลผลิตภัณฑ์ การสั่งซื้อ หรือปรึกษาด้านสุขภาพ โทร 084-330-4444 หรือ LINE @swizer_superfood',
+})
+
 const isRefundRequest = computed(() => route.query.topic === 'refund')
 const initialSubject = () => isRefundRequest.value ? 'ขอยกเลิกคำสั่งซื้อ / คืนสินค้า / คืนเงิน' : ''
 

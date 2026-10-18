@@ -1,2 +1,23 @@
-User-Agent: *
-Disallow:
+User-agent: *
+Allow: /
+Disallow: /Admin
+Disallow: /admin
+Disallow: /api/
+Disallow: /Login
+Disallow: /login
+Disallow: /Register
+Disallow: /register
+Disallow: /Cart
+Disallow: /cart
+Disallow: /Checkout
+Disallow: /checkout
+Disallow: /Orders
+Disallow: /orders
+Disallow: /Profile
+Disallow: /profile
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /order/
+
+Sitemap: https://www.swizerstore.com/sitemap.xml

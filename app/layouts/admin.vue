@@ -6,6 +6,10 @@ import { isSuperAdminRole } from '@/utils/adminAccess'
 const auth = useAuthStore()
 const isSuperAdmin = computed(() => isSuperAdminRole(auth.user?.role))
 
+useSeoMeta({
+  robots: 'noindex, nofollow',
+})
+
 const items = computed<NavigationMenuItem[]>(() => {
   const baseItems: NavigationMenuItem[] = [{
     label: 'Dashboard',
