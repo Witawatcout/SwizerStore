@@ -7,14 +7,14 @@
       
       <!-- Glass Badge for News -->
       <div class="absolute top-5 left-5 px-4 py-1.5 bg-white/40 backdrop-blur-md border border-white/30 text-primary-900 rounded-full text-[10px] font-black tracking-[0.1em] uppercase shadow-sm">
-        {{ news.tag }}
+        {{ newsTagLabel(news.tag) }}
       </div>
     </div>
 
     <div class="p-8 flex flex-col flex-grow">
       <div class="flex items-center gap-2 mb-4">
         <span class="w-8 h-[1px] bg-primary-200"></span>
-        <p class="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">{{ news.date }}</p>
+        <p class="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">{{ newsDate(news) }}</p>
       </div>
 
       <h3 class="font-headline text-2xl font-black mb-4 text-neutral-900 group-hover:text-primary-700 transition-colors line-clamp-2 leading-tight pr-4">
@@ -40,7 +40,8 @@ defineProps<{
     desc: string
     image: string
     tag: string
-    date: string
+    date?: string
+    created_at?: string
   }
 }>()
 </script>
