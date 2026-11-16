@@ -1,5 +1,7 @@
 <script setup lang="ts">
 const route = useRoute()
+const { $swizerTranslate } = useNuxtApp() as any
+const isTranslating = computed(() => Boolean($swizerTranslate?.loading?.value))
 const siteUrl = 'https://www.swizerstore.com'
 
 const canonicalUrl = computed(() => {
@@ -66,6 +68,30 @@ useHead({
         <NuxtPage />
       </NuxtLayout>
       <CookieConsent />
+      <Transition
+        enter-active-class="transition-opacity duration-150 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition-opacity duration-200 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="isTranslating"
+          class="notranslate fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-3 bg-black/55 backdrop-blur-sm select-none"
+          translate="no"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div class="flex flex-col items-center gap-3 rounded-2xl bg-neutral-900/90 px-7 py-5 text-white shadow-2xl ring-1 ring-white/15">
+            <span class="size-9 animate-spin rounded-full border-3 border-white/25 border-t-[#83c63d]" />
+            <p class="text-sm font-semibold tracking-wide text-white/95">
+              กำลังเปลี่ยนภาษา...
+            </p>
+          </div>
+        </div>
+      </Transition>
     </UApp>
   </div>
 </template>
